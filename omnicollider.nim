@@ -35,19 +35,14 @@ proc printErrorMsg(msg : string) : void =
 
 proc printDone(msg : string) : void =
     setForegroundColor(fgGreen)
-    writeStyled("DONE! ", {styleBright}) 
+    writeStyled("DONE: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg)
 
-proc omnicollider(file : seq[string], sc_path : string = default_sc_path, extensions_path : string = default_extensions_path, architecture : string = "native", supernova : bool = false, remove_build_dir : bool = true) : void = 
-
-    #Check it's just a single path as positional argument
-    if file.len != 1:
-        printErrorMsg("Expected a single path to a .nim file as the only positional argument.")
-        return
+proc omnicollider(file : string, sc_path : string = default_sc_path, extensions_path : string = default_extensions_path, architecture : string = "native", supernova : bool = false, remove_build_dir : bool = true) : void = 
 
     let 
-        fullPath = absolutePath(file[0])
+        fullPath = absolutePath(file)
         
         #This is the path to the original nim file to be used in shell.
         #Using this one in nim command so that errors are shown on this one when CTRL+Click on terminal
@@ -96,7 +91,7 @@ proc omnicollider(file : seq[string], sc_path : string = default_sc_path, extens
         fullPathToNewFolderShell = fullPathToNewFolder.replace(" ", "\\ ")
 
         #This is the Omni file copied to the new folder
-        fullPathToOmniFile   = $fullPathToNewFolder & "/" & $omniFileName & ".nim"
+        fullPathToOmniFile   = $fullPathToNewFolder & "/" & $omniFileName & $omniFileExt
 
         #These are the .cpp, .sc and cmake files in new folder
         fullPathToCppFile   = $fullPathToNewFolder & "/" & $omniFileName & ".cpp"
@@ -107,7 +102,7 @@ proc omnicollider(file : seq[string], sc_path : string = default_sc_path, extens
         fullPathToStaticLib = $fullPathToNewFolder & "/lib" & $omniFileName & $static_lib_extension
         fullPathToStaticLib_supernova = $fullPathToNewFolder & "/lib" & $omniFileName & "_supernova" & $static_lib_extension
     
-    #Create directory in same folder as .nim file
+    #Create directory in same folder as .omni file
     removeDir(fullPathToNewFolder)
     createDir(fullPathToNewFolder)
 
@@ -297,7 +292,7 @@ proc omnicollider(file : seq[string], sc_path : string = default_sc_path, extens
         printErrorMsg("Unsuccessful compilation of the UGen file " & $omniFileName & ".cpp")
         return
     
-    #cd back to the original folder where nim file is
+    #cd back to the original folder where omni file is
     setCurrentDir(omniFileDir)
 
     # ========================= #
@@ -307,7 +302,7 @@ proc omnicollider(file : seq[string], sc_path : string = default_sc_path, extens
     if supernova:
         copyFile($fullPathToNewFolder & "/build/" & $omniFileName & "_supernova" & $ugen_extension, $fullPathToNewFolder & "/" & $omniFileName & "_supernova" & $ugen_extension)
 
-    #Remove build, .cpp, cmake, .nim, and static libs
+    #Remove build, .cpp, cmake, .omni, and static libs
     removeDir(fullPathToNewFolder & "/build")
     removeFile(fullPathToCppFile)
     removeFile(fullPathToOmniFile)
@@ -329,7 +324,9 @@ proc omnicollider(file : seq[string], sc_path : string = default_sc_path, extens
 
     printDone("The " & $omniFileName & " UGen has been correctly built and installed in " & $expanded_extensions_path & ".")
 
-    
+proc omnicollider_cli(files : seq[string], sc_path : string = default_sc_path, extensions_path : string = default_extensions_path, architecture : string = "native", supernova : bool = false, remove_build_dir : bool = true) : void =
+    for file in files:
+        omnicollider(file, sc_path, extensions_path, architecture, supernova, remove_build_dir)
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(omnicollider, 
