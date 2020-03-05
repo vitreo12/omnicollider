@@ -4,10 +4,10 @@ include "omni/platforms/sc/Static/Omni_PROTO.cpp.nim"
 include "omni/platforms/sc/Static/CMakeLists.txt.nim"
 include "omni/platforms/sc/Static/Omni_PROTO.sc.nim"
 
-const omni_ver = "0.1.0"
+const omnicollider_ver = "0.1.0"
 
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
-const default_sc_path = "~/.nimble/pkgs/omni-" & omni_ver & "/omni/deps/supercollider"
+const default_sc_path = "~/.nimble/pkgs/omni-" & omnicollider_ver & "/omni/deps/supercollider"
 
 #Extension for static lib
 const static_lib_extension = ".a"
