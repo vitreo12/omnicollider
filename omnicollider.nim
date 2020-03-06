@@ -1,13 +1,16 @@
 import cligen, terminal, os, strutils, osproc
 
-include "omni/platforms/sc/Static/Omni_PROTO.cpp.nim"
-include "omni/platforms/sc/Static/CMakeLists.txt.nim"
-include "omni/platforms/sc/Static/Omni_PROTO.sc.nim"
+include "omnicolliderpkg/build/Static/Omni_PROTO.cpp.nim"
+include "omnicolliderpkg/build/Static/CMakeLists.txt.nim"
+include "omnicolliderpkg/build/Static/Omni_PROTO.sc.nim"
 
-const omnicollider_ver = "0.1.0"
+#Package version is passed as argument when building. It will be constant and set correctly
+const 
+    NimblePkgVersion {.strdefine.} = ""
+    omnicollider_ver = NimblePkgVersion
 
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
-const default_sc_path = "~/.nimble/pkgs/omni-" & omnicollider_ver & "/omni/deps/supercollider"
+const default_sc_path = "~/.nimble/pkgs/omnicollider" & omnicollider_ver & "/deps/supercollider"
 
 #Extension for static lib
 const static_lib_extension = ".a"
@@ -39,7 +42,7 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg)
 
-proc omnicollider(file : string, sc_path : string = default_sc_path, extensions_path : string = default_extensions_path, architecture : string = "native", supernova : bool = false, remove_build_dir : bool = true) : void = 
+proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : void = 
 
     let 
         fullPath = absolutePath(file)
@@ -68,18 +71,18 @@ proc omnicollider(file : string, sc_path : string = default_sc_path, extensions_
         printErrorMsg($fullPath & " is not an omni file.")
         return
 
-    let expanded_sc_path = sc_path.expandTilde()
+    let expanded_sc_path = scPath.expandTilde()
 
-    #Check sc_path
+    #Check scPath
     if not expanded_sc_path.existsDir():
-        printErrorMsg($sc_path & " doesn't exist.")
+        printErrorMsg($scPath & " doesn't exist.")
         return
     
-    let expanded_extensions_path = extensions_path.expandTilde()
+    let expanded_extensions_path = extensionsPath.expandTilde()
 
-    #Check extensions_path
+    #Check extensionsPath
     if not expanded_extensions_path.existsDir():
-        printErrorMsg($extensions_path & " doesn't exist.")
+        printErrorMsg($extensionsPath & " doesn't exist.")
         return
 
     #Full paths to the new file in omniFileName directory
@@ -113,13 +116,15 @@ proc omnicollider(file : string, sc_path : string = default_sc_path, extensions_
     # COMPILE NIM FILE #
     # ================ #
 
-    #create lib folder and cd into it. cd into it is needed by nim compiler to do --app:staticLib due to this bug: https://github.com/nim-lang/Omni/issues/12745
-    #createDir(fullPathToNewFolderShell & "/lib")
-    #setCurrentDir(fullPathToNewFolderShell & "/lib")
-    setCurrentDir(fullPathToNewFolderShell)
-
     #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let failedOmniCompilation = execCmd("nim c --import:omni --app:staticLib --gc:none --noMain --hints:off --warning[UnusedImport]:off --deadCodeElim:on --passC:-fPIC --passC:-march=" & $architecture & " -d:omnicli -d:tempDir=" & $fullPathToNewFolderShell & " -d:supercollider -d:release -d:danger --checks:off --assertions:off --opt:speed --out:lib" & $omniFileName & $static_lib_extension & " " & $fullPathToOriginalOmniFileShell)
+    let omni_command = "omni -l:static -d:writeIO -d:tempDir=" & $fullPathToNewFolderShell & " -o:" & $fullPathToNewFolderShell & " -i:omnicollider-" & $omnicollider_ver & "/omnicolliderpkg/omnicollider_lang " & $fullPathToOriginalOmniFileShell 
+    
+    echo omni_command
+
+    if true:
+        return
+    
+    let failedOmniCompilation = execCmd(omni_command)
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
@@ -129,7 +134,8 @@ proc omnicollider(file : string, sc_path : string = default_sc_path, extensions_
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        let failedOmniCompilation_supernova = execCmd("nim c --import:omni --app:staticLib --gc:none --noMain --hints:off --warning[UnusedImport]:off --deadCodeElim:on --passC:-fPIC --passC:-march=" & $architecture & " -d:supercollider -d:supernova -d:release -d:danger --checks:off --assertions:off --opt:speed --out:lib" & $omniFileName & "_supernova" & $static_lib_extension & " " & $fullPathToOriginalOmniFileShell)
+        var omni_command_supernova = "omni -l:static -d:writeIO -d:multithreadBuffers -o:" & $fullPathToNewFolderShell & " -i:omnicollider-" & $omnicollider_ver & "/omnicolliderpkg/omnicollider_lang " & $fullPathToOriginalOmniFileShell
+        let failedOmniCompilation_supernova = execCmd(omni_command_supernova)
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
@@ -319,24 +325,25 @@ proc omnicollider(file : string, sc_path : string = default_sc_path, extensions_
     copyDir(fullPathToNewFolder, fullPathToNewFolderInExtenstions)
 
     #Remove temp folder
-    if remove_build_dir:
+    if removeBuildDir:
         removeDir(fullPathToNewFolder)
 
     printDone("The " & $omniFileName & " UGen has been correctly built and installed in " & $expanded_extensions_path & ".")
 
-proc omnicollider_cli(files : seq[string], sc_path : string = default_sc_path, extensions_path : string = default_extensions_path, architecture : string = "native", supernova : bool = false, remove_build_dir : bool = true) : void =
+proc omnicollider_cli(files : seq[string], scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : void =
     for file in files:
-        omnicollider(file, sc_path, extensions_path, architecture, supernova, remove_build_dir)
+        omnicollider(file, scPath, extensionsPath, architecture, supernova, removeBuildDir)
 
 #Dispatch the omnicollider function as the CLI one
-dispatch(omnicollider, 
-    short={"sc_path" : 'p', "supernova" : 's'}, 
+dispatch(omnicollider_cli, 
+    short={"scPath" : 'p', "supernova" : 's'}, 
     
-    help={ "sc_path" : "Path to the SuperCollider source code folder.", 
-           "extensions_path" : "Path to SuperCollider's \"Platform.userExtensionDir\" or \"Platform.systemExtensionDir\".\n",
+    help={ 
+           "scPath" : "Path to the SuperCollider source code folder.", 
+           "extensionsPath" : "Path to SuperCollider's \"Platform.userExtensionDir\" or \"Platform.systemExtensionDir\".\n",
            "architecture" : "Build architecture.",
            "supernova" : "Build with supernova support.",
-           "remove_build_dir" : "Remove the directory created in the build process at the current path."
+           "removeBuildDir" : "Remove the directory created in the build process at the current path."
     }
 
 )
