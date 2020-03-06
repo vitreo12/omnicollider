@@ -1,5 +1,3 @@
-import omni_lang
-
 #Flags to cpp compiler
 {.passC: "-O3".}
 

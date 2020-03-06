@@ -10,7 +10,7 @@ const
     omnicollider_ver = NimblePkgVersion
 
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
-const default_sc_path = "~/.nimble/pkgs/omnicollider" & omnicollider_ver & "/deps/supercollider"
+const default_sc_path = "~/.nimble/pkgs/omnicollider-" & omnicollider_ver & "/omnicolliderpkg/deps/supercollider"
 
 #Extension for static lib
 const static_lib_extension = ".a"
@@ -117,7 +117,7 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     # ================ #
 
     #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni -l:static -d:writeIO -d:tempDir=" & $fullPathToNewFolderShell & " -o:" & $fullPathToNewFolderShell & " -i:omnicollider-" & $omnicollider_ver & "/omnicolliderpkg/omnicollider_lang " & $fullPathToOriginalOmniFileShell 
+    let omni_command = "omni -i:omnicollider_lang -l:static -d:writeIO -d:tempDir=" & $fullPathToNewFolderShell & " -o:" & $fullPathToNewFolderShell & " " & $fullPathToOriginalOmniFileShell 
     
     echo omni_command
 
@@ -134,7 +134,7 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni -l:static -d:writeIO -d:multithreadBuffers -o:" & $fullPathToNewFolderShell & " -i:omnicollider-" & $omnicollider_ver & "/omnicolliderpkg/omnicollider_lang " & $fullPathToOriginalOmniFileShell
+        var omni_command_supernova = "omni -i:omnicollider_lang -l:static -d:writeIO -d:multithreadBuffers -o:" & $fullPathToNewFolderShell & " " & $fullPathToOriginalOmniFileShell
         let failedOmniCompilation_supernova = execCmd(omni_command_supernova)
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
