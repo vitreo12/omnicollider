@@ -45,19 +45,19 @@ proc printDone(msg : string) : void =
 proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : void = 
 
     let 
-        fullPath = absolutePath(file)
+        fullPathToFile = absolutePath(file)
         
         #This is the path to the original nim file to be used in shell.
         #Using this one in nim command so that errors are shown on this one when CTRL+Click on terminal
-        fullPathToOriginalOmniFileShell = fullPath.replace(" ", "\\ ")
+        fullPathToOriginalOmniFileShell = fullPathToFile.replace(" ", "\\ ")
 
     #Check if file exists
-    if not fullPath.existsFile():
-        printErrorMsg($fullPath & " doesn't exist.")
+    if not fullPathToFile.existsFile():
+        printErrorMsg($fullPathToFile & " doesn't exist.")
         return
     
     var 
-        omniFile     = splitFile(fullPath)
+        omniFile     = splitFile(fullPathToFile)
         omniFileDir  = omniFile.dir
         omniFileName = omniFile.name
         omniFileExt  = omniFile.ext
@@ -68,7 +68,7 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
 
     #Check file extension
     if not(omniFileExt == ".omni") and not(omniFileExt == ".oi"):
-        printErrorMsg($fullPath & " is not an omni file.")
+        printErrorMsg($fullPathToFile & " is not an omni file.")
         return
 
     let expanded_sc_path = scPath.expandTilde()
@@ -91,7 +91,7 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
         fullPathToNewFolder = $omniFileDir & "/" & $omniFileName
 
         #This is to use in shell cmds instead of fullPathToNewFolder, expands spaces to "\ "
-        fullPathToNewFolderShell = fullPathToNewFolder.replace(" ", "\\ ")
+        #fullPathToNewFolderShell = fullPathToNewFolder.replace(" ", "\\ ")
 
         #This is the Omni file copied to the new folder
         fullPathToOmniFile   = $fullPathToNewFolder & "/" & $omniFileName & $omniFileExt
@@ -110,38 +110,47 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     createDir(fullPathToNewFolder)
 
     #Copy omniFile to folder
-    copyFile(fullPath, fullPathToOmniFile)
+    copyFile(fullPathToFile, fullPathToOmniFile)
 
     # ================ #
     # COMPILE NIM FILE #
     # ================ #
 
-    #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni -i:omnicollider_lang -l:static -d:writeIO -d:tempDir=" & $fullPathToNewFolderShell & " -o:" & $fullPathToNewFolderShell & " " & $fullPathToOriginalOmniFileShell 
-    
-    echo omni_command
+    echo "before sc compilation"
 
-    if true:
-        return
-    
-    let failedOmniCompilation = execCmd(omni_command)
+    #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
+    let omni_command = "omni \"" & $fullPathToFile & "\" -i:omnicollider_lang -l:static -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
+
+    #Windows requires powershell to figure out the .nimble path... go figure!
+    when not defined(Windows):
+        let failedOmniCompilation = execCmd(omni_command)
+    else:
+        let failedOmniCompilation = execShellCmd(omni_command)
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
         printErrorMsg("Unsuccessful compilation of " & $omniFileName & $omniFileExt)
         return
+
+    echo "finished sc compilation"
     
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni -i:omnicollider_lang -l:static -d:writeIO -d:multithreadBuffers -o:" & $fullPathToNewFolderShell & " " & $fullPathToOriginalOmniFileShell
-        let failedOmniCompilation_supernova = execCmd(omni_command_supernova)
+        var omni_command_supernova = "omni \"" & $fullPathToFile & "\" -i:omnicollider_lang -l:static -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        
+        #Windows requires powershell to figure out the .nimble path... go figure!
+        when not defined(Windows):
+            let failedOmniCompilation_supernova = execCmd(omni_command_supernova)
+        else:
+            let failedOmniCompilation_supernova = execShellCmd(omni_command_supernova)
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
             printErrorMsg("Unsuccessful supernova compilation of " & $omniFileName & $omniFileExt)
             return
     
+    echo "finished nova compilation"
     # ================ #
     #  RETRIEVE I / O  #
     # ================ #
@@ -261,23 +270,28 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     
     when(not(defined(Windows))):
         if supernova:
-            sc_cmake_cmd = "cmake -DWORKING_FOLDER=" & $fullPathToNewFolderShell & " -DSC_PATH=" & $expanded_sc_path & " -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -DWORKING_FOLDER=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         else:
-            sc_cmake_cmd = "cmake -DWORKING_FOLDER=" & $fullPathToNewFolderShell & " -DSC_PATH=" & $expanded_sc_path & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -DWORKING_FOLDER=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     else:
         #cmake wants a path in unix style, not windows!!!
-        let fullPathToNewFolderShell_Unix = fullPathToNewFolderShell.replace("\\", "/")
+        let fullPathToNewFolderShell_Unix = fullPathToNewFolder.replace("\\", "/")
+
+        echo fullPathToNewFolderShell_Unix
         
         if supernova:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=" & $fullPathToNewFolderShell_Unix & " -DSC_PATH=" & $expanded_sc_path & " -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolderShell_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         else:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=" & $fullPathToNewFolderShell_Unix & " -DSC_PATH=" & $expanded_sc_path & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolderShell_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     
     #cd into the build directory
-    setCurrentDir(fullPathToNewFolderShell & "/build")
+    setCurrentDir(fullPathToNewFolder & "/build")
     
     #Execute CMake
-    let failedSCCmake = execCmd(sc_cmake_cmd)
+    when not defined(Windows):
+        let failedSCCmake = execCmd(sc_cmake_cmd)
+    else:
+        let failedSCCmake = execShellCmd(sc_cmake_cmd)
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCmake > 0:
@@ -286,12 +300,14 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
 
     #make command
     when not(defined(Windows)):
-        let sc_compilation_cmd = "make"
+        let 
+            sc_compilation_cmd = "make"
+            failedSCCompilation = execCmd(sc_compilation_cmd)
     else:
-        let sc_compilation_cmd = "mingw32-make"
-
-    #Execute make command
-    let failedSCCompilation = execCmd(sc_compilation_cmd)
+        let 
+            sc_compilation_cmd = "mingw32-make"
+            failedSCCompilation = execShellCmd(sc_compilation_cmd)
+        
     
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCompilation > 0:
