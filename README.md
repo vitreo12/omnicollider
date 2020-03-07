@@ -8,7 +8,9 @@ Compile omni code into SuperCollider UGens.
 2) [omni](https://github.com/vitreo12/omni)
 
         git clone https://github.com/vitreo12/omni
+
         cd omni
+        
         nimble installOmni
 
 ### **Windows:**
@@ -20,10 +22,13 @@ To install dependencies on Windows, it is suggested to use a package manager lik
 After chocolatey has been installed, run the following commands in your command line or PowerShell to install cmake and MinGW:
 
     choco install cmake --pre 
+
     choco install mingw
 
 ## **Installation**
 
     git clone --recursive https://github.com/vitreo12/omnicollider
+    
     cd omnicollider
+    
     nimble installOmniCollider
