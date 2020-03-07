@@ -42,14 +42,14 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : int = 
+proc omnicollider(file : string, supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
 
     let 
         fullPathToFile = file.normalizedPath().expandTilde().absolutePath()
         
         #This is the path to the original nim file to be used in shell.
         #Using this one in nim command so that errors are shown on this one when CTRL+Click on terminal
-        fullPathToOriginalOmniFileShell = fullPathToFile.replace(" ", "\\ ")
+        #fullPathToOriginalOmniFileShell = fullPathToFile.replace(" ", "\\ ")
 
     #Check if file exists
     if not fullPathToFile.existsFile():
@@ -71,18 +71,18 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
         printError($fullPathToFile & " is not an omni file.")
         return 1
 
-    let expanded_sc_path = scPath.expandTilde()
+    let expanded_sc_path = scPath.normalizedPath().expandTilde().absolutePath()
 
     #Check scPath
     if not expanded_sc_path.existsDir():
         printError($scPath & " doesn't exist.")
         return 1
     
-    let expanded_extensions_path = extensionsPath.expandTilde()
+    let expanded_out_dir = outDir.normalizedPath().expandTilde().absolutePath()
 
     #Check extensionsPath
-    if not expanded_extensions_path.existsDir():
-        printError($extensionsPath & " doesn't exist.")
+    if not expanded_out_dir.existsDir():
+        printError($outDir & " doesn't exist.")
         return 1
 
     #Full paths to the new file in omniFileName directory
@@ -151,7 +151,8 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     # ================ #
     
     let 
-        io_file = readFile($fullPathToNewFolder & "/IO.txt")
+        fullPathToIOFile = fullPathToNewFolder & "/IO.txt"
+        io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
     if io_file_seq.len != 3:
@@ -269,15 +270,13 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
         else:
             sc_cmake_cmd = "cmake -DWORKING_FOLDER=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     else:
-        #cmake wants a path in unix style, not windows!!!
-        let fullPathToNewFolderShell_Unix = fullPathToNewFolder.replace("\\", "/")
-
-        echo fullPathToNewFolderShell_Unix
+        #Cmake wants a path in unix style, not windows! Replace "/" with "\"
+        let fullPathToNewFolder_Unix = fullPathToNewFolder.replace("\\", "/")
         
         if supernova:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolderShell_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         else:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolderShell_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     
     #cd into the build directory
     setCurrentDir(fullPathToNewFolder & "/build")
@@ -319,33 +318,36 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     if supernova:
         copyFile($fullPathToNewFolder & "/build/" & $omniFileName & "_supernova" & $ugen_extension, $fullPathToNewFolder & "/" & $omniFileName & "_supernova" & $ugen_extension)
 
-    #Remove build, .cpp, cmake, .omni, and static libs
+    #Remove build dir
     removeDir(fullPathToNewFolder & "/build")
-    removeFile(fullPathToCppFile)
-    removeFile(fullPathToOmniFile)
-    removeFile(fullPathToCMakeFile)
-    removeFile(fullPathToStaticLib)
-    if supernova:
-        removeFile(fullPathToStaticLib_supernova)
+    
+    #If removeBuildFiles, remove all sources and static libraries compiled
+    if removeBuildFiles:
+        removeFile(fullPathToCppFile)
+        removeFile(fullPathToOmniFile)
+        removeFile(fullPathToCMakeFile)
+        removeFile(fullPathToIOFile)
+        removeFile(fullPathToStaticLib)
+        if supernova:
+            removeFile(fullPathToStaticLib_supernova)
 
     #Copy to extensions folder
-    let fullPathToNewFolderInExtenstions = $expanded_extensions_path  & "/" & omniFileName
+    let fullPathToNewFolderInExtenstions = $expanded_out_dir  & "/" & omniFileName
     
-    #Remove previous folder there if there was, then copy the new one over to the extensions folder
+    #Remove previous folder in Extensions if there was, then copy the new one over
     removeDir(fullPathToNewFolderInExtenstions)
     copyDir(fullPathToNewFolder, fullPathToNewFolderInExtenstions)
 
-    #Remove temp folder
-    if removeBuildDir:
-        removeDir(fullPathToNewFolder)
+    #Remove temp folder used for compilation
+    removeDir(fullPathToNewFolder)
 
-    printDone("The " & $omniFileName & " UGen has been correctly built and installed in \"" & $expanded_extensions_path & "\".")
+    printDone("The " & $omniFileName & " UGen has been correctly built and installed in \"" & $expanded_out_dir & "\".")
 
     return 0
 
-proc omnicollider_cli(files : seq[string], scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : int =
+proc omnicollider_cli(files : seq[string], supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
     for file in files:
-        if omnicollider(file, scPath, extensionsPath, architecture, supernova, removeBuildDir) > 0:
+        if omnicollider(file, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
             return 1
     
     return 0
@@ -355,11 +357,11 @@ dispatch(omnicollider_cli,
     short={"scPath" : 'p', "supernova" : 's'}, 
     
     help={ 
-           "scPath" : "Path to the SuperCollider source code folder.", 
-           "extensionsPath" : "Path to SuperCollider's \"Platform.userExtensionDir\" or \"Platform.systemExtensionDir\".\n",
-           "architecture" : "Build architecture.",
-           "supernova" : "Build with supernova support.",
-           "removeBuildDir" : "Remove the directory created in the build process at the current path."
+            "supernova" : "Build with supernova support.",
+            "architecture" : "Build architecture.",
+            "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionsDir\".",
+            "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
+            "removeBuildFiles" : "Remove source files used for compilation from outDir."        
     }
 
 )
