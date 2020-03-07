@@ -45,19 +45,19 @@ extern "C"
 //Wrappers around RTAlloc, RTRealloc, RTFree
 void* RTAlloc_func(size_t inSize)
 {
-    printf("Calling RTAlloc_func with size: %d\n", inSize);
+    Print("Calling RTAlloc_func with size: %d\n", inSize);
     return ft->fRTAlloc(SCWorld, inSize);
 }
 
 void* RTRealloc_func(void* inPtr, size_t inSize)
 {
-    printf("Calling RTRealloc_func with size: %d\n", inSize);
+    Print("Calling RTRealloc_func with size: %d\n", inSize);
     return ft->fRTRealloc(SCWorld, inPtr, inSize);
 }
 
 void RTFree_func(void* inPtr)
 {
-    printf("Calling RTFree_func\n");
+    Print("Calling RTFree_func\n");
     ft->fRTFree(SCWorld, inPtr);
 }
 
