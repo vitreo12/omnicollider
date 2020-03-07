@@ -15,7 +15,7 @@ Compile omni code into SuperCollider UGens.
 
 ### **Windows:**
 
-The [MinGW](https://sourceforge.net/projects/mingw-w64/) compiler is also needed for Windows use.
+The [MinGW](http://mingw.org/) compiler is also needed for Windows use.
 
 To install dependencies on Windows, it is suggested to use a package manager like [chocolatey](https://chocolatey.org/why-chocolatey). To install chocolatey, check its [installation guide](https://chocolatey.org/install).
 
