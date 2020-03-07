@@ -55,8 +55,8 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
     result.input_num = int(input_num) - int(1)
 
     #If these checks fail set to sc_world to nil, which will invalidate the Buffer (the get_buffer_SC would just return null)
-    if input_num > ugen_inputs:
-        discard printf(exceeding_max_ugen_inputs, ugen_inputs)
+    if input_num > omni_inputs:
+        discard printf(exceeding_max_ugen_inputs, omni_inputs)
         result.sc_world = nil
 
     elif input_num > 32:
@@ -67,9 +67,9 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
         discard printf(lower_exceed_input_error, input_num)
         result.sc_world = nil
 
-#Template which also uses the const ugen_inputs, which belongs to the nim dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, ugen_inputs)
+#Template which also uses the const omni_inputs, which belongs to the nim dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    innerInit(Buffer, input_num, ugen_inputs) #ugen_inputs belongs to the scope of the dsp module
+    innerInit(Buffer, input_num, omni_inputs) #omni_inputs belongs to the scope of the dsp module
 
 proc destructor*(obj : Buffer) : void =
     print("Calling Buffer's destructor\n")
