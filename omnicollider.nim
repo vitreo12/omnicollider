@@ -42,10 +42,10 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider(file : string, supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider(omniFile : string, supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
 
     let 
-        fullPathToFile = file.normalizedPath().expandTilde().absolutePath()
+        fullPathToFile = omniFile.normalizedPath().expandTilde().absolutePath()
         
         #This is the path to the original nim file to be used in shell.
         #Using this one in nim command so that errors are shown on this one when CTRL+Click on terminal
@@ -75,14 +75,14 @@ proc omnicollider(file : string, supernova : bool = false, architecture : string
 
     #Check scPath
     if not expanded_sc_path.existsDir():
-        printError($scPath & " doesn't exist.")
+        printError("scPath: " & $expanded_sc_path & " doesn't exist.")
         return 1
     
     let expanded_out_dir = outDir.normalizedPath().expandTilde().absolutePath()
 
-    #Check extensionsPath
+    #Check outDir
     if not expanded_out_dir.existsDir():
-        printError($outDir & " doesn't exist.")
+        printError("outDir: " & $expanded_out_dir & " doesn't exist.")
         return 1
 
     #Full paths to the new file in omniFileName directory
@@ -345,9 +345,9 @@ proc omnicollider(file : string, supernova : bool = false, architecture : string
 
     return 0
 
-proc omnicollider_cli(files : seq[string], supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
-    for file in files:
-        if omnicollider(file, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+proc omnicollider_cli(omniFiles : seq[string], supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+    for omniFile in omniFiles:
+        if omnicollider(omniFile, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
             return 1
     
     return 0

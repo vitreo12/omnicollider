@@ -55,3 +55,7 @@ Then, install `omnicollider`:
     cd omnicollider
     
     nimble installOmniCollider
+
+## **Usage**
+
+    omnicollider -s:true ~/.nimble/pkgs/omni_lang-0.1.0/omni_lang/examples/OmniSaw.omni                                                                                        
