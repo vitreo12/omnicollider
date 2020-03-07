@@ -30,22 +30,22 @@ when defined(Windows):
         default_extensions_path = "~\\AppData\\Local\\SuperCollider\\Extensions"
         ugen_extension = ".scx"
 
-proc printErrorMsg(msg : string) : void =
+proc printError(msg : string) : void =
     setForegroundColor(fgRed)
     writeStyled("ERROR: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
-    writeStyled(msg)
+    writeStyled(msg & "\n")
 
 proc printDone(msg : string) : void =
     setForegroundColor(fgGreen)
     writeStyled("DONE: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
-    writeStyled(msg)
+    writeStyled(msg & "\n")
 
-proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : void = 
+proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : int = 
 
     let 
-        fullPathToFile = absolutePath(file)
+        fullPathToFile = file.normalizedPath().expandTilde().absolutePath()
         
         #This is the path to the original nim file to be used in shell.
         #Using this one in nim command so that errors are shown on this one when CTRL+Click on terminal
@@ -53,8 +53,8 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
 
     #Check if file exists
     if not fullPathToFile.existsFile():
-        printErrorMsg($fullPathToFile & " doesn't exist.")
-        return
+        printError($fullPathToFile & " doesn't exist.")
+        return 1
     
     var 
         omniFile     = splitFile(fullPathToFile)
@@ -68,22 +68,22 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
 
     #Check file extension
     if not(omniFileExt == ".omni") and not(omniFileExt == ".oi"):
-        printErrorMsg($fullPathToFile & " is not an omni file.")
-        return
+        printError($fullPathToFile & " is not an omni file.")
+        return 1
 
     let expanded_sc_path = scPath.expandTilde()
 
     #Check scPath
     if not expanded_sc_path.existsDir():
-        printErrorMsg($scPath & " doesn't exist.")
-        return
+        printError($scPath & " doesn't exist.")
+        return 1
     
     let expanded_extensions_path = extensionsPath.expandTilde()
 
     #Check extensionsPath
     if not expanded_extensions_path.existsDir():
-        printErrorMsg($extensionsPath & " doesn't exist.")
-        return
+        printError($extensionsPath & " doesn't exist.")
+        return 1
 
     #Full paths to the new file in omniFileName directory
     let 
@@ -116,8 +116,6 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     # COMPILE NIM FILE #
     # ================ #
 
-    echo "before sc compilation"
-
     #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
     let omni_command = "omni \"" & $fullPathToFile & "\" -i:omnicollider_lang -l:static -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
 
@@ -129,15 +127,13 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
-        printErrorMsg("Unsuccessful compilation of " & $omniFileName & $omniFileExt)
-        return
-
-    echo "finished sc compilation"
+        printError("Unsuccessful omnicollider compilation of " & $omniFileName & $omniFileExt & ".")
+        return 1
     
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fullPathToFile & "\" -i:omnicollider_lang -l:static -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fullPathToFile & "\" -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when not defined(Windows):
@@ -147,10 +143,9 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
-            printErrorMsg("Unsuccessful supernova compilation of " & $omniFileName & $omniFileExt)
-            return
+            printError("Unsuccessful omnicollider supernova compilation of " & $omniFileName & $omniFileExt & ".")
+            return 1
     
-    echo "finished nova compilation"
     # ================ #
     #  RETRIEVE I / O  #
     # ================ #
@@ -160,8 +155,8 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
         io_file_seq = io_file.split('\n')
 
     if io_file_seq.len != 3:
-        printErrorMsg("Invalid IO.txt file")
-        return   
+        printError("Invalid IO.txt file.")
+        return 1
     
     let 
         num_inputs  = parseInt(io_file_seq[0])
@@ -295,8 +290,8 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCmake > 0:
-        printErrorMsg("Unsuccessful cmake generation of the UGen file " & $omniFileName & ".cpp")
-        return
+        printError("Unsuccessful cmake generation of the UGen file \"" & $omniFileName & ".cpp\".")
+        return 1
 
     #make command
     when not(defined(Windows)):
@@ -311,8 +306,8 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCompilation > 0:
-        printErrorMsg("Unsuccessful compilation of the UGen file " & $omniFileName & ".cpp")
-        return
+        printError("Unsuccessful compilation of the UGen file \"" & $omniFileName & ".cpp\".")
+        return 1
     
     #cd back to the original folder where omni file is
     setCurrentDir(omniFileDir)
@@ -344,11 +339,16 @@ proc omnicollider(file : string, scPath : string = default_sc_path, extensionsPa
     if removeBuildDir:
         removeDir(fullPathToNewFolder)
 
-    printDone("The " & $omniFileName & " UGen has been correctly built and installed in " & $expanded_extensions_path & ".")
+    printDone("The " & $omniFileName & " UGen has been correctly built and installed in \"" & $expanded_extensions_path & "\".")
 
-proc omnicollider_cli(files : seq[string], scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : void =
+    return 0
+
+proc omnicollider_cli(files : seq[string], scPath : string = default_sc_path, extensionsPath : string = default_extensions_path, architecture : string = "native", supernova : bool = false, removeBuildDir : bool = true) : int =
     for file in files:
-        omnicollider(file, scPath, extensionsPath, architecture, supernova, removeBuildDir)
+        if omnicollider(file, scPath, extensionsPath, architecture, supernova, removeBuildDir) > 0:
+            return 1
+    
+    return 0
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(omnicollider_cli, 
