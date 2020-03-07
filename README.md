@@ -1,31 +1,40 @@
 # **omnicollider**
 
-Compile omni code into SuperCollider UGens.
+Compile [omni](https://github.com/vitreo12/omni) code into [SuperCollider](https://github.com/supercollider/supercollider) `UGens`.
 
 ## **Requirements**
 
-1) [cmake](https://cmake.org/download/)
-2) [omni](https://github.com/vitreo12/omni)
+### **All Platforms**
 
-        git clone https://github.com/vitreo12/omni
-
-        cd omni
-        
-        nimble installOmni
+1) [nim](https://nim-lang.org/)
+2) [git](https://git-scm.com/)
+3) [cmake](https://cmake.org/)
 
 ### **Windows:**
 
-The [MinGW](http://mingw.org/) compiler is also needed for Windows use.
+On Windows, the [MinGW](http://mingw.org/)'s `gcc` compiler needs also to be installed.
 
-To install dependencies on Windows, it is suggested to use a package manager like [chocolatey](https://chocolatey.org/why-chocolatey). To install chocolatey, check its [installation guide](https://chocolatey.org/install).
+To install dependencies on Windows, it is suggested to use a package manager like [scoop](https://scoop.sh/). 
+To install `scoop`, simply open `PowerShell` and run this command :
+    
+    iwr -useb get.scoop.sh | iex
 
-After chocolatey has been installed, run the following commands in your command line or PowerShell to install cmake and MinGW:
+After `scoop` has been installed, run the following command in `PowerShell` to install `git`, `cmake` and `gcc`:
 
-    choco install cmake --pre 
+    scoop install git cmake gcc
 
-    choco install mingw
 
 ## **Installation**
+
+First, install `omni`:
+
+    git clone https://github.com/vitreo12/omni
+
+    cd omni
+        
+    nimble installOmni
+
+Then, install `omnicollider`:
 
     git clone --recursive https://github.com/vitreo12/omnicollider
     
