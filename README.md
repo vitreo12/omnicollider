@@ -3,14 +3,21 @@
 Compile omni code into SuperCollider UGens.
 
 ## **Requirements**
-    
-### https://github.com/vitreo12/omni
 
-    git clone https://github.com/vitreo12/omni
-    
-    cd omni
+### All platforms:
 
-    nimble installOmni
+1) #### [cmake]()
+2) #### [omni](https://github.com/vitreo12/omni)
+
+        git clone https://github.com/vitreo12/omni
+        
+        cd omni
+
+        nimble installOmni
+
+### Windows:
+
+#### [MinGW]()
 
 ## **Installation**
 
