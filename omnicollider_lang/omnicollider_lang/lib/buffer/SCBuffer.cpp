@@ -7,6 +7,16 @@ extern "C"
     //Global variable that will live in each Nim module that compiles this "SCBuffer.c" file
     World* SCWorld;
 
+    void init_sc_world(void* inWorld)
+    {
+        printf("Calling init_world\n");
+
+        if(!inWorld)
+            printf("ERROR: Invalid SCWorld\n");
+
+        SCWorld = (World*)inWorld;
+    }
+
     void* get_sc_world()
     {
         return (void*)SCWorld;

@@ -24,25 +24,47 @@ bool world_init = false;
 //Initialization functions. Wrapped in C since the Nim lib is exported with C named libraries
 extern "C" 
 {
+    //World pointer. This is declared in SCBuffer.cpp
+    extern World* SCWorld;
+
     //Initialization of World
-    extern void init_world(void* inWorld);
+    extern void init_sc_world(void* inWorld);
 
     //Initialization function prototypes for the real time allocator
-    typedef void* RTAlloc_ptr(World *inWorld, size_t inSize);
-    typedef void* RTRealloc_ptr(World *inWorld, void *inPtr, size_t inSize);
-    typedef void  RTFree_ptr(World *inWorld, void *inPtr);
-    extern void   init_alloc_function_pointers(RTAlloc_ptr* In_RTAlloc, RTRealloc_ptr* In_RTRealloc, RTFree_ptr* In_RTFree);
+    typedef void* alloc_func_t(size_t inSize);
+    typedef void* realloc_func_t(void *inPtr, size_t inSize);
+    typedef void  free_func_t(void *inPtr);
+    extern  void  Omni_Init_Alloc(alloc_func_t* In_RTAlloc, realloc_func_t* In_RTRealloc, free_func_t* In_RTFree);
 
     //Nim module functions
-    extern void* UGenConstructor(float** ins_SC, int bufsize, double samplerate);
-    extern void  UGenDestructor(void* obj_void);
-    extern void  UGenPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
+    extern void* OmniConstructor(float** ins_SC, int bufsize, double samplerate);
+    extern void  OmniDestructor(void* obj_void);
+    extern void  OmniPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
+}
+
+//Wrappers around RTAlloc, RTRealloc, RTFree
+void* RTAlloc_func(size_t inSize)
+{
+    printf("Calling RTAlloc_func with size: %d\n", inSize);
+    return ft->fRTAlloc(SCWorld, inSize);
+}
+
+void* RTRealloc_func(void* inPtr, size_t inSize)
+{
+    printf("Calling RTRealloc_func with size: %d\n", inSize);
+    return ft->fRTRealloc(SCWorld, inPtr, inSize);
+}
+
+void RTFree_func(void* inPtr)
+{
+    printf("Calling RTFree_func\n");
+    ft->fRTFree(SCWorld, inPtr);
 }
 
 //struct
 struct Omni_PROTO : public Unit 
 {
-    void* Nim_obj;
+    void* omni_obj;
 };
 
 //DSP functions
@@ -62,12 +84,13 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         //First thread that reaches this will set it for all
         if(!world_init)
         {
-            if(!(&init_world) || !(&init_alloc_function_pointers))
+            if(!(&init_sc_world) || !(&Omni_Init_Alloc))
                 Print("ERROR: No %s.%s loaded\n", NAME, EXTENSION);
             else 
             {
-                init_world((void*)unit->mWorld);
-                init_alloc_function_pointers((RTAlloc_ptr*)ft->fRTAlloc, (RTRealloc_ptr*)ft->fRTRealloc, (RTFree_ptr*)ft->fRTFree);
+                init_sc_world((void*)unit->mWorld);
+                SCWorld = unit->mWorld;
+                Omni_Init_Alloc((alloc_func_t*)RTAlloc_func, (realloc_func_t*)RTRealloc_func, (free_func_t*)RTFree_func);
             }
 
             //Still init. Things won't change up until next server reboot.
@@ -78,12 +101,12 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&UGenConstructor && &init_world && &init_alloc_function_pointers)
-        unit->Nim_obj = (void*)UGenConstructor(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
+    if(&OmniConstructor && &init_sc_world && &Omni_Init_Alloc)
+        unit->omni_obj = (void*)OmniConstructor(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
         Print("ERROR: No %s.%s loaded\n", NAME, EXTENSION);
-        unit->Nim_obj = nullptr;
+        unit->omni_obj = nullptr;
     }
         
     SETCALC(Omni_PROTO_next);
@@ -93,14 +116,14 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
 
 void Omni_PROTO_Dtor(Omni_PROTO* unit) 
 {
-    if(unit->Nim_obj)
-        UGenDestructor(unit->Nim_obj);
+    if(unit->omni_obj)
+        OmniDestructor(unit->omni_obj);
 }
 
 void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples) 
 {
-    if(unit->Nim_obj)
-        UGenPerform(unit->Nim_obj, inNumSamples, unit->mInBuf, unit->mOutBuf);
+    if(unit->omni_obj)
+        OmniPerform(unit->omni_obj, inNumSamples, unit->mInBuf, unit->mOutBuf);
     else
     {
         for(int i = 0; i < unit->mNumOutputs; i++)
@@ -115,7 +138,6 @@ void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples)
 PluginLoad(Omni_PROTOUGens) 
 {
     ft = inTable; 
-
     DefineDtorUnit(Omni_PROTO);
 }
 

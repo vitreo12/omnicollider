@@ -102,6 +102,8 @@ endif()
 #Declaration the new UGen shared lib to build
 add_library(${PROJECT} MODULE ${FILENAME})
 
+message(STATUS "Folder: ${WORKING_FOLDER}")
+
 #Linker flags for scsynth UGen
 target_link_libraries(${PROJECT} "-fPIC -L'${WORKING_FOLDER}' -l${PROJECT}")
 
