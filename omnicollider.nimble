@@ -7,6 +7,9 @@ requires "nim >= 1.0.0"
 requires "cligen >= 0.9.41"
 requires "omni >= 0.1.0"
 
+#Ignore omnicollider_lang
+skipDirs = @["omnicollider_lang"]
+
 #Install build/deps
 installDirs = @["omnicolliderpkg"] 
 
