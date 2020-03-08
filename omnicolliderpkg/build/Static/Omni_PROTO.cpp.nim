@@ -1,5 +1,4 @@
 var OMNI_PROTO_CPP = """
-
 #include <atomic>
 
 #include "SC_PlugIn.h"
@@ -7,11 +6,11 @@ var OMNI_PROTO_CPP = """
 #define NAME "Omni_PROTO"
 
 #ifdef __APPLE__
-    #define EXTENSION "dylib"
+    #define EXTENSION ".scx"
 #elif __linux__
-    #define EXTENSION "so"
+    #define EXTENSION ".so"
 #elif _WIN32
-    #define EXTENSION "dll"
+    #define EXTENSION ".scx"
 #endif
 
 //Interface table
@@ -21,7 +20,7 @@ static InterfaceTable *ft;
 std::atomic_flag has_init_world = ATOMIC_FLAG_INIT;
 bool world_init = false;
 
-//Initialization functions. Wrapped in C since the Nim lib is exported with C named libraries
+//Initialization functions. Wrapped in C since the Omni lib is exported with C named libraries
 extern "C" 
 {
     //World pointer. This is declared in SCBuffer.cpp
@@ -30,13 +29,16 @@ extern "C"
     //Initialization of World
     extern void init_sc_world(void* inWorld);
 
-    //Initialization function prototypes for the real time allocator
+    //Initialization function prototypes
     typedef void* alloc_func_t(size_t inSize);
     typedef void* realloc_func_t(void *inPtr, size_t inSize);
     typedef void  free_func_t(void *inPtr);
-    extern  void  Omni_Init_Alloc(alloc_func_t* In_RTAlloc, realloc_func_t* In_RTRealloc, free_func_t* In_RTFree);
+    typedef int   print_func_t(const char* formatString, ...);
 
-    //Nim module functions
+    //Initialization function
+    extern  void  Omni_Init(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func);
+
+    //Omni module functions
     extern void* OmniConstructor(float** ins_SC, int bufsize, double samplerate);
     extern void  OmniDestructor(void* obj_void);
     extern void  OmniPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
@@ -61,6 +63,11 @@ void RTFree_func(void* inPtr)
     ft->fRTFree(SCWorld, inPtr);
 }
 
+void RTPrint_func(const char* formatString, ...)
+{
+    ft->fPrint(formatString);
+}
+
 //struct
 struct Omni_PROTO : public Unit 
 {
@@ -74,7 +81,7 @@ static void Omni_PROTO_Dtor(Omni_PROTO* unit);
 
 void Omni_PROTO_Ctor(Omni_PROTO* unit) 
 {
-    //Initialization routines for the Nim UGen. 
+    //Initialization routines for the Omni_PROTO UGen. 
     if(!world_init)
     {
         //Acquire lock
@@ -84,13 +91,13 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         //First thread that reaches this will set it for all
         if(!world_init)
         {
-            if(!(&init_sc_world) || !(&Omni_Init_Alloc))
-                Print("ERROR: No %s.%s loaded\n", NAME, EXTENSION);
+            if(!(&init_sc_world) || !(&Omni_Init))
+                Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
             else 
             {
                 init_sc_world((void*)unit->mWorld);
                 SCWorld = unit->mWorld;
-                Omni_Init_Alloc((alloc_func_t*)RTAlloc_func, (realloc_func_t*)RTRealloc_func, (free_func_t*)RTFree_func);
+                Omni_Init((alloc_func_t*)RTAlloc_func, (realloc_func_t*)RTRealloc_func, (free_func_t*)RTFree_func, (print_func_t*)RTPrint_func);
             }
 
             //Still init. Things won't change up until next server reboot.
@@ -101,7 +108,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&OmniConstructor && &init_sc_world && &Omni_Init_Alloc)
+    if(&OmniConstructor && &init_sc_world && &Omni_Init)
         unit->omni_obj = (void*)OmniConstructor(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
@@ -134,11 +141,10 @@ void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples)
     }
 }
 
-//Rename Omni_PROTO to the name of the nim file to compile
+//Rename Omni_PROTO to the name of the Omni file to compile
 PluginLoad(Omni_PROTOUGens) 
 {
     ft = inTable; 
     DefineDtorUnit(Omni_PROTO);
 }
-
 """
