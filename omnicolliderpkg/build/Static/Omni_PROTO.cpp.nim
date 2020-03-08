@@ -39,7 +39,7 @@ extern "C"
     extern  void  Omni_Init(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func);
 
     //Omni module functions
-    extern void* OmniConstructor(float** ins_SC, int bufsize, double samplerate);
+    extern void* OmniInitBuildObj(float** ins_SC, int bufsize, double samplerate);
     extern void  OmniDestructor(void* obj_void);
     extern void  OmniPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
 }
@@ -108,8 +108,8 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&OmniConstructor && &init_sc_world && &Omni_Init)
-        unit->omni_obj = (void*)OmniConstructor(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
+    if(&OmniInitBuildObj && &init_sc_world && &Omni_Init)
+        unit->omni_obj = (void*)OmniInitBuildObj(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
         Print("ERROR: No %s.%s loaded\n", NAME, EXTENSION);
