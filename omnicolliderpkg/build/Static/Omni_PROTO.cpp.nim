@@ -30,18 +30,20 @@ extern "C"
     extern void init_sc_world(void* inWorld);
 
     //Initialization function prototypes
-    typedef void* alloc_func_t(size_t inSize);
-    typedef void* realloc_func_t(void *inPtr, size_t inSize);
-    typedef void  free_func_t(void *inPtr);
-    typedef int   print_func_t(const char* formatString, ...);
+    typedef void*  alloc_func_t(size_t inSize);
+    typedef void*  realloc_func_t(void *inPtr, size_t inSize);
+    typedef void   free_func_t(void *inPtr);
+    typedef int    print_func_t(const char* formatString, ...);
+    typedef double get_samplerate_func_t();
+    typedef int    get_bufsize_func_t();
 
     //Initialization function
-    extern  void  Omni_Init(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func);
+    extern  void  OmniInitGlobal(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func, get_samplerate_func_t* get_samplerate_func, get_bufsize_func_t* get_bufsize_func);
 
     //Omni module functions
-    extern void* OmniInitBuildObj(float** ins_SC, int bufsize, double samplerate);
-    extern void  OmniDestructor(void* obj_void);
-    extern void  OmniPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
+    extern  void* OmniAllocAndInitObj(float** ins_SC, int bufsize, double samplerate);
+    extern  void  OmniDestructor(void* obj_void);
+    extern  void  OmniPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
 }
 
 //Wrappers around RTAlloc, RTRealloc, RTFree
@@ -63,18 +65,31 @@ void RTFree_func(void* inPtr)
     ft->fRTFree(SCWorld, inPtr);
 }
 
+//Wrapper around Print
 void RTPrint_func(const char* formatString, ...)
 {
     ft->fPrint(formatString);
 }
 
-//struct
+//Wrapper around world->mSampleRate
+double getSampleRate_func()
+{
+    return SCWorld->mSampleRate;
+}
+
+//Wrapper around world->mBufLength
+int getBufLength_func()
+{
+    return SCWorld->mBufLength;
+}
+
+//SC struct
 struct Omni_PROTO : public Unit 
 {
     void* omni_obj;
 };
 
-//DSP functions
+//SC functions
 static void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples);
 static void Omni_PROTO_Ctor(Omni_PROTO* unit);
 static void Omni_PROTO_Dtor(Omni_PROTO* unit);
@@ -91,13 +106,25 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         //First thread that reaches this will set it for all
         if(!world_init)
         {
-            if(!(&init_sc_world) || !(&Omni_Init))
+            if(!(&init_sc_world) || !(&OmniInitGlobal))
                 Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
             else 
             {
+                //Init SCWorld also in the omni module
                 init_sc_world((void*)unit->mWorld);
+                
+                //Get SCWorld pointer needed for RTAlloc wrappers
                 SCWorld = unit->mWorld;
-                Omni_Init((alloc_func_t*)RTAlloc_func, (realloc_func_t*)RTRealloc_func, (free_func_t*)RTFree_func, (print_func_t*)RTPrint_func);
+                
+                //Init omni with all the function pointers
+                OmniInitGlobal(
+                    (alloc_func_t*)RTAlloc_func, 
+                    (realloc_func_t*)RTRealloc_func, 
+                    (free_func_t*)RTFree_func, 
+                    (print_func_t*)RTPrint_func,
+                    (get_samplerate_func_t*)getSampleRate_func,
+                    (get_bufsize_func_t*)getBufLength_func
+                );
             }
 
             //Still init. Things won't change up until next server reboot.
@@ -108,11 +135,11 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&OmniInitBuildObj && &init_sc_world && &Omni_Init)
-        unit->omni_obj = (void*)OmniInitBuildObj(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
+    if(&OmniAllocAndInitObj && &init_sc_world && &OmniInitGlobal)
+        unit->omni_obj = (void*)OmniAllocAndInitObj(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
-        Print("ERROR: No %s.%s loaded\n", NAME, EXTENSION);
+        Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
         unit->omni_obj = nullptr;
     }
         
@@ -141,7 +168,6 @@ void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples)
     }
 }
 
-//Rename Omni_PROTO to the name of the Omni file to compile
 PluginLoad(Omni_PROTOUGens) 
 {
     ft = inTable; 
