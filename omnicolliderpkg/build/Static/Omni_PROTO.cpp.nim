@@ -33,7 +33,7 @@ extern "C"
     typedef void*  alloc_func_t(size_t inSize);
     typedef void*  realloc_func_t(void *inPtr, size_t inSize);
     typedef void   free_func_t(void *inPtr);
-    typedef int    print_func_t(const char* formatString, ...);
+    typedef void   print_func_t(const char* formatString, ...);
     typedef double get_samplerate_func_t();
     typedef int    get_bufsize_func_t();
 
