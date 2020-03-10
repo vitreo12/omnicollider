@@ -32,13 +32,13 @@ when defined(Windows):
 
 proc printError(msg : string) : void =
     setForegroundColor(fgRed)
-    writeStyled("ERROR[omnicollider]: ", {styleBright}) 
+    writeStyled("ERROR [omnicollider]: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
 proc printDone(msg : string) : void =
     setForegroundColor(fgGreen)
-    writeStyled("DONE[omnicollider]: ", {styleBright}) 
+    writeStyled("DONE [omnicollider]: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
@@ -127,7 +127,7 @@ proc omnicollider(omniFile : string, supernova : bool = false, architecture : st
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
-        printError("Unsuccessful omnicollider compilation of " & $omniFileName & $omniFileExt & ".")
+        printError("Unsuccessful compilation of " & $omniFileName & $omniFileExt & ".")
         return 1
     
     #Also for supernova
@@ -143,7 +143,7 @@ proc omnicollider(omniFile : string, supernova : bool = false, architecture : st
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
-            printError("Unsuccessful omnicollider supernova compilation of " & $omniFileName & $omniFileExt & ".")
+            printError("Unsuccessful supernova compilation of " & $omniFileName & $omniFileExt & ".")
             return 1
     
     # ================ #

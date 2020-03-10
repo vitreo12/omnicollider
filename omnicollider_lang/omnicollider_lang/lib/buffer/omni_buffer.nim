@@ -1,12 +1,12 @@
-#Flags to cpp compiler
-{.passC: "-O3".}
-
 #If supernova defined, also pass the supernova flag to cpp
 when defined(multithreadBuffers):
     {.passC: "-D SUPERNOVA".}
 
 #cpp file to compile together. Should I compile it ahead and use the link pragma on the .o instead?
 {.compile: "SCBuffer.cpp".}
+
+#Flags to cpp compiler
+{.passC: "-O3".}
 
 #Wrapping of cpp functions
 proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat) : pointer {.importc, cdecl.}
@@ -56,15 +56,15 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
 
     #If these checks fail set to sc_world to nil, which will invalidate the Buffer (the get_buffer_SC would just return null)
     if input_num > omni_inputs:
-        discard omni_print(exceeding_max_ugen_inputs, omni_inputs)
+        omni_print(exceeding_max_ugen_inputs, omni_inputs)
         result.sc_world = nil
 
     elif input_num > 32:
-        discard omni_print(upper_exceed_input_error, input_num)
+        omni_print(upper_exceed_input_error, input_num)
         result.sc_world = nil
 
     elif input_num < 1:
-        discard omni_print(lower_exceed_input_error, input_num)
+        omni_print(lower_exceed_input_error, input_num)
         result.sc_world = nil
 
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
