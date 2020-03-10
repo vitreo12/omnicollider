@@ -32,13 +32,13 @@ when defined(Windows):
 
 proc printError(msg : string) : void =
     setForegroundColor(fgRed)
-    writeStyled("ERROR: ", {styleBright}) 
+    writeStyled("ERROR[omnicollider]: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
 proc printDone(msg : string) : void =
     setForegroundColor(fgGreen)
-    writeStyled("DONE: ", {styleBright}) 
+    writeStyled("DONE[omnicollider]: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
