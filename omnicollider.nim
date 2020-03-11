@@ -42,7 +42,7 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider(omniFile : string, supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider_single_file(omniFile : string, supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
 
     let 
         fullPathToFile = omniFile.normalizedPath().expandTilde().absolutePath()
@@ -345,21 +345,21 @@ proc omnicollider(omniFile : string, supernova : bool = false, architecture : st
 
     return 0
 
-proc omnicollider_cli(omniFiles : seq[string], supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider(omniFiles : seq[string], supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
     for omniFile in omniFiles:
-        if omnicollider(omniFile, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+        if omnicollider_single_file(omniFile, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
             return 1
     
     return 0
 
 #Dispatch the omnicollider function as the CLI one
-dispatch(omnicollider_cli, 
+dispatch(omnicollider, 
     short={"scPath" : 'p', "supernova" : 's'}, 
     
     help={ 
             "supernova" : "Build with supernova support.",
             "architecture" : "Build architecture.",
-            "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionsDir\".",
+            "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\".",
             "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
             "removeBuildFiles" : "Remove source files used for compilation from outDir."        
     }
