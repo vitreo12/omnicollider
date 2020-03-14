@@ -43,7 +43,7 @@ extern "C"
     //Omni module functions
     extern  void* Omni_UGenAllocInit(float** ins_SC, int bufsize, double samplerate);
     extern  void  Omni_UGenFree(void* ugen_ptr);
-    extern  void  Omni_UGenPerform(void* ugen_ptr, float** ins_ptr, float** ins_ptr, int buf_size);
+    extern  void  Omni_UGenPerform(void* ugen_ptr, float** ins_ptr, float** outs_ptr, int buf_size);
 }
 
 //Wrappers around RTAlloc, RTRealloc, RTFree
@@ -135,7 +135,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&OmniAllocAndInitObj && &init_sc_world && &Omni_InitGlobal)
+    if(&Omni_UGenAllocInit && &init_sc_world && &Omni_InitGlobal)
         unit->omni_obj = (void*)Omni_UGenAllocInit(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
