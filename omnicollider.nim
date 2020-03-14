@@ -53,7 +53,7 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
 
     #Check if file exists
     if not fullPathToFile.existsFile():
-        printError($fullPathToFile & " doesn't exist.")
+        printError($fullPathToFile & " does not exist.")
         return 1
     
     var 
@@ -75,14 +75,14 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
 
     #Check scPath
     if not expanded_sc_path.existsDir():
-        printError("scPath: " & $expanded_sc_path & " doesn't exist.")
+        printError("scPath: " & $expanded_sc_path & " does not exist.")
         return 1
     
     let expanded_out_dir = outDir.normalizedPath().expandTilde().absolutePath()
 
     #Check outDir
     if not expanded_out_dir.existsDir():
-        printError("outDir: " & $expanded_out_dir & " doesn't exist.")
+        printError("outDir: " & $expanded_out_dir & " does not exist.")
         return 1
 
     #Full paths to the new file in omniFileName directory
