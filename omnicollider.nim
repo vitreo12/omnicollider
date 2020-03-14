@@ -266,17 +266,17 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
     
     when(not(defined(Windows))):
         if supernova:
-            sc_cmake_cmd = "cmake -DWORKING_FOLDER=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         else:
-            sc_cmake_cmd = "cmake -DWORKING_FOLDER=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     else:
         #Cmake wants a path in unix style, not windows! Replace "/" with "\"
         let fullPathToNewFolder_Unix = fullPathToNewFolder.replace("\\", "/")
         
         if supernova:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         else:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DWORKING_FOLDER=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     
     #cd into the build directory
     setCurrentDir(fullPathToNewFolder & "/build")
@@ -323,6 +323,9 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
     
     #If removeBuildFiles, remove all sources and static libraries compiled
     if removeBuildFiles:
+        let fullPathToOmniHeaderFile = fullPathToNewFolder & "/omni.h"
+
+        removeFile(fullPathToOmniHeaderFile)
         removeFile(fullPathToCppFile)
         removeFile(fullPathToOmniFile)
         removeFile(fullPathToCMakeFile)

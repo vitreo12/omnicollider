@@ -1,7 +1,7 @@
 var OMNI_PROTO_CPP = """
 #include <atomic>
-
 #include "SC_PlugIn.h"
+#include "omni.h"
 
 #define NAME "Omni_PROTO"
 
@@ -28,47 +28,31 @@ extern "C"
 
     //Initialization of World
     extern void init_sc_world(void* inWorld);
-
-    //Initialization function prototypes
-    typedef void*  alloc_func_t(size_t inSize);
-    typedef void*  realloc_func_t(void *inPtr, size_t inSize);
-    typedef void   free_func_t(void *inPtr);
-    typedef void   print_func_t(const char* formatString, ...);
-    typedef double get_samplerate_func_t();
-    typedef int    get_bufsize_func_t();
-
-    //Initialization function
-    extern  void  Omni_InitGlobal(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func, get_samplerate_func_t* get_samplerate_func, get_bufsize_func_t* get_bufsize_func);
-
-    //Omni module functions
-    extern  void* Omni_UGenAllocInit(float** ins_SC, int bufsize, double samplerate);
-    extern  void  Omni_UGenFree(void* ugen_ptr);
-    extern  void  Omni_UGenPerform(void* ugen_ptr, float** ins_ptr, float** outs_ptr, int buf_size);
 }
 
 //Wrappers around RTAlloc, RTRealloc, RTFree
-void* RTAlloc_func(size_t inSize)
+void* RTAlloc_func(size_t in_size)
 {
-    Print("Calling RTAlloc_func with size: %d\n", inSize);
-    return ft->fRTAlloc(SCWorld, inSize);
+    Print("Calling RTAlloc_func with size: %d\n", in_size);
+    return ft->fRTAlloc(SCWorld, in_size);
 }
 
-void* RTRealloc_func(void* inPtr, size_t inSize)
+void* RTRealloc_func(void* in_ptr, size_t in_size)
 {
-    Print("Calling RTRealloc_func with size: %d\n", inSize);
-    return ft->fRTRealloc(SCWorld, inPtr, inSize);
+    Print("Calling RTRealloc_func with size: %d\n", in_size);
+    return ft->fRTRealloc(SCWorld, in_ptr, in_size);
 }
 
-void RTFree_func(void* inPtr)
+void RTFree_func(void* in_ptr)
 {
     Print("Calling RTFree_func\n");
-    ft->fRTFree(SCWorld, inPtr);
+    ft->fRTFree(SCWorld, in_ptr);
 }
 
 //Wrapper around Print
-void RTPrint_func(const char* formatString, ...)
+void RTPrint_func(const char* format_string, ...)
 {
-    ft->fPrint(formatString);
+    ft->fPrint(format_string);
 }
 
 //Wrapper around world->mSampleRate
@@ -118,12 +102,12 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
                 
                 //Init omni with all the function pointers
                 Omni_InitGlobal(
-                    (alloc_func_t*)RTAlloc_func, 
-                    (realloc_func_t*)RTRealloc_func, 
-                    (free_func_t*)RTFree_func, 
-                    (print_func_t*)RTPrint_func,
-                    (get_samplerate_func_t*)getSampleRate_func,
-                    (get_bufsize_func_t*)getBufLength_func
+                    (omni_alloc_func_t*)RTAlloc_func, 
+                    (omni_realloc_func_t*)RTRealloc_func, 
+                    (omni_free_func_t*)RTFree_func, 
+                    (omni_print_func_t*)RTPrint_func,
+                    (omni_get_samplerate_func_t*)getSampleRate_func,
+                    (omni_get_bufsize_func_t*)getBufLength_func
                 );
             }
 
@@ -157,7 +141,7 @@ void Omni_PROTO_Dtor(Omni_PROTO* unit)
 void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples) 
 {
     if(unit->omni_obj)
-        Omni_UGenPerform(unit->omni_obj, unit->mInBuf, unit->mOutBuf, inNumSamples);
+        Omni_UGenPerform32(unit->omni_obj, unit->mInBuf, unit->mOutBuf, inNumSamples);
     else
     {
         for(int i = 0; i < unit->mNumOutputs; i++)

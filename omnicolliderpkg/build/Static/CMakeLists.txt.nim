@@ -4,20 +4,23 @@ cmake_minimum_required (VERSION 2.8)
 get_filename_component(PROJECT ${FILENAME} NAME_WE)
 message(STATUS "Project name is ${PROJECT}")
 
-#Needed for generic builds. MacOS 10.10 is the minimum.
+#Needed for generic OSX builds. MacOS 10.10 is the minimum.
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "Minimum OS X deployment version")
 
+#Define project
 project (${PROJECT})
 
+message(STATUS "Build dir: ${OMNI_BUILD_DIR}")
+
+#Include build dir for omni.h. OMNI_BUILD_DIR also contains the compiled static lib (linked later in target_link_libraries)
+include_directories(${OMNI_BUILD_DIR})
+
+#SC includes
 include_directories(${SC_PATH}/include/plugin_interface)
 include_directories(${SC_PATH}/include/common)
 include_directories(${SC_PATH}/common)
 
-set(CMAKE_SHARED_MODULE_PREFIX "")
-if(APPLE OR WIN32)
-    set(CMAKE_SHARED_MODULE_SUFFIX ".scx")
-endif()
-
+#Supernova includes
 option(SUPERNOVA "Build plugins for supernova" OFF)
 if (SUPERNOVA)
     include_directories(${SC_PATH}/external_libraries/nova-tt)
@@ -27,6 +30,13 @@ if (SUPERNOVA)
     include_directories(${SC_PATH}/external_libraries/boost-lockfree)
 endif()
 
+#Compiled UGen suffix
+set(CMAKE_SHARED_MODULE_PREFIX "")
+if(APPLE OR WIN32)
+    set(CMAKE_SHARED_MODULE_SUFFIX ".scx")
+endif()
+
+#CPP11
 option(CPP11 "Build with c++11." ON)
 set (CMAKE_CXX_STANDARD 11)
 
@@ -39,6 +49,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
+#Set Clang on OSX
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
@@ -98,16 +109,14 @@ if(MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
 endif()
 
-#Declaration the new UGen shared lib to build
+#Declare the new UGen shared lib to build
 add_library(${PROJECT} MODULE ${FILENAME})
 
-message(STATUS "Folder: ${WORKING_FOLDER}")
-
 #Linker flags for scsynth UGen
-target_link_libraries(${PROJECT} "-fPIC -L'${WORKING_FOLDER}' -l${PROJECT}")
+target_link_libraries(${PROJECT} "-fPIC -L'${OMNI_BUILD_DIR}' -l${PROJECT}")
 
 if(SUPERNOVA)
-    #Declaration the new supernova UGen shared lib to build
+    #Declare the new supernova UGen shared lib to build
     add_library(${PROJECT}_supernova MODULE ${FILENAME})
     
     #Add all the supernova definitions
@@ -115,6 +124,6 @@ if(SUPERNOVA)
                  PROPERTY COMPILE_DEFINITIONS SUPERNOVA)
     
     #Linker flags for supernova UGen
-    target_link_libraries(${PROJECT}_supernova "-fPIC -L'${WORKING_FOLDER}' -l${PROJECT}_supernova")
+    target_link_libraries(${PROJECT}_supernova "-fPIC -L'${OMNI_BUILD_DIR}' -l${PROJECT}_supernova")
 endif()
 """
