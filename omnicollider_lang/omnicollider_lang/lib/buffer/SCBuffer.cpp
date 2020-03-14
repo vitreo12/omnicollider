@@ -93,8 +93,6 @@ extern "C"
         if(buf)
         {
             SndBuf* snd_buf = (SndBuf*)buf;
-
-            //Supernova should lock here
                     
             long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
             
@@ -110,8 +108,6 @@ extern "C"
         if(buf)
         {
             SndBuf* snd_buf = (SndBuf*)buf;
-            
-            //Supernova should lock here
             
             long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
             

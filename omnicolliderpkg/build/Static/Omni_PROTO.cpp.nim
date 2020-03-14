@@ -38,12 +38,12 @@ extern "C"
     typedef int    get_bufsize_func_t();
 
     //Initialization function
-    extern  void  OmniInitGlobal(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func, get_samplerate_func_t* get_samplerate_func, get_bufsize_func_t* get_bufsize_func);
+    extern  void  Omni_InitGlobal(alloc_func_t* alloc_func, realloc_func_t* realloc_func, free_func_t* free_func, print_func_t* print_func, get_samplerate_func_t* get_samplerate_func, get_bufsize_func_t* get_bufsize_func);
 
     //Omni module functions
-    extern  void* OmniAllocAndInitObj(float** ins_SC, int bufsize, double samplerate);
-    extern  void  OmniDestructor(void* obj_void);
-    extern  void  OmniPerform(void* ugen_void, int buf_size, float** ins_SC, float** outs_SC);
+    extern  void* Omni_UGenAllocInit(float** ins_SC, int bufsize, double samplerate);
+    extern  void  Omni_UGenFree(void* ugen_ptr);
+    extern  void  Omni_UGenPerform(void* ugen_ptr, float** ins_ptr, float** ins_ptr, int buf_size);
 }
 
 //Wrappers around RTAlloc, RTRealloc, RTFree
@@ -106,7 +106,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         //First thread that reaches this will set it for all
         if(!world_init)
         {
-            if(!(&init_sc_world) || !(&OmniInitGlobal))
+            if(!(&init_sc_world) || !(&Omni_InitGlobal))
                 Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
             else 
             {
@@ -117,7 +117,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
                 SCWorld = unit->mWorld;
                 
                 //Init omni with all the function pointers
-                OmniInitGlobal(
+                Omni_InitGlobal(
                     (alloc_func_t*)RTAlloc_func, 
                     (realloc_func_t*)RTRealloc_func, 
                     (free_func_t*)RTFree_func, 
@@ -135,8 +135,8 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&OmniAllocAndInitObj && &init_sc_world && &OmniInitGlobal)
-        unit->omni_obj = (void*)OmniAllocAndInitObj(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
+    if(&OmniAllocAndInitObj && &init_sc_world && &Omni_InitGlobal)
+        unit->omni_obj = (void*)Omni_UGenAllocInit(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
         Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
@@ -151,13 +151,13 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
 void Omni_PROTO_Dtor(Omni_PROTO* unit) 
 {
     if(unit->omni_obj)
-        OmniDestructor(unit->omni_obj);
+        Omni_UGenFree(unit->omni_obj);
 }
 
 void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples) 
 {
     if(unit->omni_obj)
-        OmniPerform(unit->omni_obj, inNumSamples, unit->mInBuf, unit->mOutBuf);
+        Omni_UGenPerform(unit->omni_obj, unit->mInBuf, unit->mOutBuf, inNumSamples);
     else
     {
         for(int i = 0; i < unit->mNumOutputs; i++)
