@@ -70,7 +70,7 @@ int getBufLength_func()
 //SC struct
 struct Omni_PROTO : public Unit 
 {
-    void* omni_obj;
+    void* omni_ugen;
 };
 
 //SC functions
@@ -120,11 +120,11 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
     }
 
     if(&Omni_UGenAllocInit && &init_sc_world && &Omni_InitGlobal)
-        unit->omni_obj = (void*)Omni_UGenAllocInit(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
+        unit->omni_ugen = (void*)Omni_UGenAllocInit(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
     else
     {
         Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
-        unit->omni_obj = nullptr;
+        unit->omni_ugen = nullptr;
     }
         
     SETCALC(Omni_PROTO_next);
@@ -134,14 +134,14 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
 
 void Omni_PROTO_Dtor(Omni_PROTO* unit) 
 {
-    if(unit->omni_obj)
-        Omni_UGenFree(unit->omni_obj);
+    if(unit->omni_ugen)
+        Omni_UGenFree(unit->omni_ugen);
 }
 
 void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples) 
 {
-    if(unit->omni_obj)
-        Omni_UGenPerform32(unit->omni_obj, unit->mInBuf, unit->mOutBuf, inNumSamples);
+    if(unit->omni_ugen)
+        Omni_UGenPerform32(unit->omni_ugen, unit->mInBuf, unit->mOutBuf, inNumSamples);
     else
     {
         for(int i = 0; i < unit->mNumOutputs; i++)
