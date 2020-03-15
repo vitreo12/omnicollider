@@ -357,14 +357,16 @@ proc omnicollider(omniFiles : seq[string], supernova : bool = false, architectur
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(omnicollider, 
-    short={"scPath" : 'p', "supernova" : 's'}, 
+    short={
+        "scPath" : 'p',
+        "supernova" : 's'
+    }, 
     
     help={ 
-            "supernova" : "Build with supernova support.",
-            "architecture" : "Build architecture.",
-            "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\".",
-            "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
-            "removeBuildFiles" : "Remove source files used for compilation from outDir."        
+        "supernova" : "Build with supernova support.",
+        "architecture" : "Build architecture.",
+        "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\".",
+        "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
+        "removeBuildFiles" : "Remove source files used for compilation from outDir."        
     }
-
 )

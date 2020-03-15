@@ -3,7 +3,7 @@ when defined(multithreadBuffers):
     {.passC: "-D SUPERNOVA".}
 
 #cpp file to compile together. Should I compile it ahead and use the link pragma on the .o instead?
-{.compile: "SCBuffer.cpp".}
+{.compile: "omnicollider_buffer.cpp".}
 
 #Flags to cpp compiler
 {.passC: "-O3".}
