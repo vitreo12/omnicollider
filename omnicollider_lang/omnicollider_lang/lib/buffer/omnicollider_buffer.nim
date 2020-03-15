@@ -121,21 +121,21 @@ proc `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I
 #########
 
 #length of each frame in buffer
-proc len*(buffer : Buffer) : cint =
-    return get_frames_buffer_SC(buffer.snd_buf)
+proc len*(buffer : Buffer) : int =
+    return int(get_frames_buffer_SC(buffer.snd_buf))
 
 #Returns total size (snd_buf->samples)
-proc size*(buffer : Buffer) : cint =
-    return get_samples_buffer_SC(buffer.snd_buf)
+proc size*(buffer : Buffer) : int =
+    return int(get_samples_buffer_SC(buffer.snd_buf))
 
 #Number of channels
-proc nchans*(buffer : Buffer) : cint =
-    return get_channels_buffer_SC(buffer.snd_buf)
+proc nchans*(buffer : Buffer) : int =
+    return int(get_channels_buffer_SC(buffer.snd_buf))
 
 #Samplerate (float64)
-proc samplerate*(buffer : Buffer) : cdouble =
-    return get_samplerate_buffer_SC(buffer.snd_buf)
+proc samplerate*(buffer : Buffer) : float =
+    return float(get_samplerate_buffer_SC(buffer.snd_buf))
 
 #Sampledur (Float64)
-proc sampledur*(buffer : Buffer) : cdouble =
-    return get_sampledur_buffer_SC(buffer.snd_buf)
+proc sampledur*(buffer : Buffer) : float =
+    return float(get_sampledur_buffer_SC(buffer.snd_buf))
