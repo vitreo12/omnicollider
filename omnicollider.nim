@@ -1,8 +1,8 @@
 import cligen, terminal, os, strutils, osproc
 
-include "omnicolliderpkg/build/Static/Omni_PROTO.cpp.nim"
-include "omnicolliderpkg/build/Static/CMakeLists.txt.nim"
-include "omnicolliderpkg/build/Static/Omni_PROTO.sc.nim"
+include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
+include "omnicolliderpkg/Static/CMakeLists.txt.nim"
+include "omnicolliderpkg/Static/Omni_PROTO.sc.nim"
 
 #Package version is passed as argument when building. It will be constant and set correctly
 const 
@@ -10,7 +10,7 @@ const
     omnicollider_ver = NimblePkgVersion
 
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
-const default_sc_path = "~/.nimble/pkgs/omnicollider-" & omnicollider_ver & "/omnicolliderpkg/deps/supercollider"
+const default_sc_path = "~/.nimble/pkgs/omnicollider_lang-" & omnicollider_ver & "/omnicollider_lang/deps/supercollider"
 
 #Extension for static lib
 const static_lib_extension = ".a"

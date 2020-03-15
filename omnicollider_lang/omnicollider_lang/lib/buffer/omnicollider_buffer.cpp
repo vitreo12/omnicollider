@@ -1,4 +1,7 @@
 #include <cstdio>
+
+//Can't include the ones from deps/supercollider/include/plugin_interface, because the #include "SC_Types.h" in SC_World.h would give error
+//as it is not in plugin_interface, but in common. Perhaps I could pass a -I flag to the cpp compiler pointing to the common folder. Maybe in the future.
 #include "SC_Utilities/SC_World.h"
 #include "SC_Utilities/SC_Unit.h"
 
