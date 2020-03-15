@@ -71,12 +71,10 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
     innerInit(Buffer, input_num, omni_inputs) #omni_inputs belongs to the scope of the dsp module
 
-proc destructor*(obj : Buffer) : void =
-    print("Calling Buffer's destructor\n")
-
-    let obj_void = cast[pointer](obj)
-
-    omni_free(obj_void)
+proc destructor*(buffer : Buffer) : void =
+    print("Calling Buffer's destructor")
+    let buffer_ptr = cast[pointer](buffer)
+    omni_free(buffer_ptr)
 
 #Called at start of perform. If supernova is active, this will also lock the buffer.
 proc get_buffer*(buffer : Buffer, fbufnum : float32) : void =
