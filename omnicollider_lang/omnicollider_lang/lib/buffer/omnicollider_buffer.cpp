@@ -91,94 +91,66 @@ extern "C"
     }
     #endif
 
+    /* 
+        For all these function, the validity of void* buf has already been tested at the start of the perform function!
+        
+        if isNil(buffer.snd_buf):
+            return false
+    */
     float get_float_value_buffer_SC(void* buf, long index, long channel)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-                    
-            long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
-            
-            if(index >= 0 && (actual_index < snd_buf->samples))
-                return snd_buf->data[actual_index];
-        }
+        SndBuf* snd_buf = (SndBuf*)buf;
+                
+        long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
         
+        if(index >= 0 && (actual_index < snd_buf->samples))
+            return snd_buf->data[actual_index];
+
         return 0.f;
     }
 
     void set_float_value_buffer_SC(void* buf, float value, long index, long channel)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            
-            long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
-            
-            if(index >= 0 && (actual_index < snd_buf->samples))
-            {
-                snd_buf->data[actual_index] = value;
-                return;
-            }
-        }
+        SndBuf* snd_buf = (SndBuf*)buf;
+        
+        long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
+        
+        if(index >= 0 && (actual_index < snd_buf->samples))
+            snd_buf->data[actual_index] = value;
     }
 
     //Length of each channel
     int get_frames_buffer_SC(void* buf)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            return snd_buf->frames;
-        }
-            
-        return 0;
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->frames;
     }
 
     //Total allocated length
     int get_samples_buffer_SC(void* buf)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            return snd_buf->samples;
-        }
-
-        return 0;
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->samples;
     }
 
     //Number of channels
     int get_channels_buffer_SC(void* buf)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            return snd_buf->channels;
-        }
-            
-        return 0;
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->channels;
     }
 
     //Samplerate
     double get_samplerate_buffer_SC(void* buf)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            return snd_buf->samplerate;
-        }
-            
-        return 0;
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->samplerate;
     }
 
     //Sampledur
     double get_sampledur_buffer_SC(void* buf)
     {
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            return snd_buf->sampledur;
-        }
-            
-        return 0;
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->sampledur;
     }
 }

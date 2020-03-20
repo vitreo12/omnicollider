@@ -119,8 +119,8 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         has_init_world.clear(std::memory_order_release); 
     }
 
-    if(&Omni_UGenAllocInit && &init_sc_world && &Omni_InitGlobal)
-        unit->omni_ugen = (void*)Omni_UGenAllocInit(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate);
+    if(&Omni_UGenAllocInit32 && &init_sc_world && &Omni_InitGlobal)
+        unit->omni_ugen = Omni_UGenAllocInit32(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate, (void*)unit->mWorld);
     else
     {
         Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);

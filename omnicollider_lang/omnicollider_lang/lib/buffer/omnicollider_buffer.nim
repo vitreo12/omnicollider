@@ -69,7 +69,7 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
 
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    innerInit(Buffer, input_num, omni_inputs) #omni_inputs belongs to the scope of the dsp module
+    innerInit(Buffer, input_num, omni_inputs, buffer_interface) #omni_inputs belongs to the scope of the dsp module
 
 proc destructor*(buffer : Buffer) : void =
     print("Calling Buffer's destructor")
@@ -77,7 +77,7 @@ proc destructor*(buffer : Buffer) : void =
     omni_free(buffer_ptr)
 
 #Called at start of perform. If supernova is active, this will also lock the buffer.
-proc get_buffer*(buffer : Buffer, fbufnum : float32) : void =
+proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool =
     var bufnum = fbufnum
     if bufnum < 0.0:
         bufnum = 0.0
@@ -86,6 +86,11 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : void =
     if buffer.bufnum != bufnum:
         buffer.bufnum  = bufnum
         buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum))
+    
+    if isNil(buffer.snd_buf):
+        return false
+    
+    return true
 
 #Supernova unlocking
 when defined(multithreadBuffers):
