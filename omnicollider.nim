@@ -10,7 +10,7 @@ const
     omnicollider_ver = NimblePkgVersion
 
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
-const default_sc_path = "~/.nimble/pkgs/omnicollider_lang-" & omnicollider_ver & "/omnicollider_lang/deps/supercollider"
+const default_sc_path = "~/.nimble/pkgs/omnicollider-" & omnicollider_ver & "/omnicolliderpkg/deps/supercollider"
 
 #Extension for static lib
 const static_lib_extension = ".a"
