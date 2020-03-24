@@ -42,21 +42,13 @@ set (CMAKE_CXX_STANDARD 11)
 
 #Set release build type as default
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE "Release")
 endif()
-
-#Set optimizer flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 #Set Clang on OSX
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
-
-#Build architecture
-message(STATUS "BUILD ARCHITECTURE : ${BUILD_MARCH}")
-add_definitions(-march=${BUILD_MARCH})
 
 #Should all these C flags be disabled for generic builds???
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANG)
@@ -105,9 +97,17 @@ endif()
 
 #Windows build.
 if(MINGW)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mstackrealign")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -mstackrealign")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
 endif()
+
+#Set optimizer flags
+set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -s -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -s -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
+
+#Build architecture.. I should get rid of this next bit, or remove it from the flags
+message(STATUS "BUILD ARCHITECTURE : ${BUILD_MARCH}")
+add_definitions(-march=${BUILD_MARCH} -mtune=${BUILD_MARCH})
 
 #Declare the new UGen shared lib to build
 add_library(${PROJECT} MODULE ${FILENAME})

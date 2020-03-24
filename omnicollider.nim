@@ -155,7 +155,7 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
         io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
-    if io_file_seq.len != 3:
+    if io_file_seq.len != 4:
         printError("Invalid IO.txt file.")
         return 1
     
@@ -164,16 +164,6 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
         input_names_string = io_file_seq[1]
         input_names = input_names_string.split(',') #this is a seq now
         num_outputs = parseInt(io_file_seq[2])
-
-    # ================ #
-    # CREATE NEW FILES #
-    # ================ #
-
-    #Create .ccp/.sc/cmake files in the new folder
-    let
-        cppFile   = open(fullPathToCppFile, fmWrite)
-        scFile    = open(fullPathToSCFile, fmWrite)
-        cmakeFile = open(fullPathToCMakeFile, fmWrite)
     
     # ======== #
     # SC I / O #
@@ -237,23 +227,29 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
         multiOut_string = "init { arg ... theInputs;\n\t\tinputs = theInputs;\n\t\t^this.initOutputs(" & $num_outputs & ", rate);\n\t}"
         OMNI_PROTO_SC = OMNI_PROTO_SC.replace("//multiOut", multiOut_string)
         OMNI_PROTO_SC = OMNI_PROTO_SC.replace(" : UGen", " : MultiOutUGen")
-
-    # =========== #
-    # WRITE FILES #
-    # =========== #
-
+    
     #Replace Omni_PROTO with the name of the Omni file
     OMNI_PROTO_CPP   = OMNI_PROTO_CPP.replace("Omni_PROTO", omniFileName)
     OMNI_PROTO_SC    = OMNI_PROTO_SC.replace("Omni_PROTO", omniFileName)
     OMNI_PROTO_CMAKE = OMNI_PROTO_CMAKE.replace("Omni_PROTO", omniFileName)
+    
+    # =========== #
+    # WRITE FILES #
+    # =========== #
+
+    #Create .ccp/.sc/cmake files in the new folder
+    let
+        cppFile   = open(fullPathToCppFile, fmWrite)
+        scFile    = open(fullPathToSCFile, fmWrite)
+        cmakeFile = open(fullPathToCMakeFile, fmWrite)
 
     cppFile.write(OMNI_PROTO_CPP)
     scFile.write(OMNI_PROTO_SC)
-    cmakeFIle.write(OMNI_PROTO_CMAKE)
+    cmakeFile.write(OMNI_PROTO_CMAKE)
 
     cppFile.close
     scFile.close
-    cmakeFIle.close
+    cmakeFile.close
     
     # ========== #
     # BUILD UGEN #
