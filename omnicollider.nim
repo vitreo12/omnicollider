@@ -296,7 +296,8 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
             failedSCCompilation = execCmd(sc_compilation_cmd)
     else:
         let 
-            sc_compilation_cmd = "mingw32-make"
+            sc_compilation_cmd  = "mingw32-make"
+            #sc_compilation_cmd = "cmake --build . --config Release"
             failedSCCompilation = execShellCmd(sc_compilation_cmd)
         
     
