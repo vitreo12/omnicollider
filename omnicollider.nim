@@ -42,7 +42,7 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider_single_file(omniFile : string, supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider_single_file(omniFile : string, supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
 
     let 
         fullPathToFile = omniFile.normalizedPath().expandTilde().absolutePath()
@@ -332,20 +332,20 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = false, archi
             removeFile(fullPathToStaticLib_supernova)
 
     #Copy to extensions folder
-    let fullPathToNewFolderInExtenstions = $expanded_out_dir  & "/" & omniFileName
+    let fullPathToNewFolderInOutDir = $expanded_out_dir  & "/" & omniFileName
     
-    #Remove previous folder in Extensions if there was, then copy the new one over
-    removeDir(fullPathToNewFolderInExtenstions)
-    copyDir(fullPathToNewFolder, fullPathToNewFolderInExtenstions)
-
-    #Remove temp folder used for compilation
-    removeDir(fullPathToNewFolder)
+    #Remove temp folder used for compilation only if it differs from outDir (otherwise, it's gonna delete the actual folder)
+    if fullPathToNewFolderInOutDir != fullPathToNewFolder:
+        #Remove previous folder in outDir if there was, then copy the new one over, then delete the temporary one
+        removeDir(fullPathToNewFolderInOutDir)
+        copyDir(fullPathToNewFolder, fullPathToNewFolderInOutDir)
+        removeDir(fullPathToNewFolder)
 
     printDone("The " & $omniFileName & " UGen has been correctly built and installed in \"" & $expanded_out_dir & "\".")
 
     return 0
 
-proc omnicollider(omniFiles : seq[string], supernova : bool = false, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider(omniFiles : seq[string], supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
     for omniFile in omniFiles:
         if omnicollider_single_file(omniFile, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
             return 1
