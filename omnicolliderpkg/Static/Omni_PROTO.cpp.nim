@@ -155,6 +155,6 @@ void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples)
 PluginLoad(Omni_PROTOUGens) 
 {
     ft = inTable; 
-    DefineDtorUnit(Omni_PROTO);
+    DefineDtorCantAliasUnit(Omni_PROTO);
 }
 """
