@@ -41,9 +41,9 @@ type
     Buffer* = ptr Buffer_obj
 
 const
-    exceeding_max_ugen_inputs = "ERROR: Buffer: exceeding maximum number of inputs: %d\n"
-    upper_exceed_input_error  = "ERROR: Buffer: input %d out of bounds. Maximum input number is 32.\n"
-    lower_exceed_input_error  = "ERROR: Buffer: input %d out of bounds. Minimum input number is 1.\n"
+    exceeding_max_ugen_inputs = "ERROR [omni]: Buffer: exceeding maximum number of inputs: "
+    upper_exceed_input_error  = "ERROR [omni]: Buffer: Maximum input number is 32. Out of bounds: "
+    lower_exceed_input_error  = "ERROR [omni]: Buffer: Minimum input number is 1. Out of bounds: "
 
 proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer) : Buffer =
     result = cast[Buffer](omni_alloc(cast[culong](sizeof(Buffer_obj))))
@@ -54,18 +54,22 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
     #1 should be 0, 2 1, 3 2, etc... 32 31
     result.input_num = int(input_num) - int(1)
 
-    #If these checks fail set to sc_world to nil, which will invalidate the Buffer (the get_buffer_SC would just return null)
+    #If these checks fail set to sc_world to nil, which will invalidate the Buffer.
+    #result.input_num is needed for get_buffer(buffer, ins[0][0), as 1 is the minimum number for ins, for now...
     if input_num > omni_inputs:
-        omni_print(exceeding_max_ugen_inputs, omni_inputs)
+        omni_print_StrVal(exceeding_max_ugen_inputs, culong(omni_inputs))
         result.sc_world = nil
+        result.input_num = 0
 
     elif input_num > 32:
-        omni_print(upper_exceed_input_error, input_num)
+        omni_print_StrVal(upper_exceed_input_error, culong(input_num))
         result.sc_world = nil
+        result.input_num = 0
 
     elif input_num < 1:
-        omni_print(lower_exceed_input_error, input_num)
+        omni_print_StrVal(lower_exceed_input_error, culong(input_num)) #this prints out a ridicolous number if < 0... ulong overflow. 
         result.sc_world = nil
+        result.input_num = 0
 
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
