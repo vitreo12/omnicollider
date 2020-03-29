@@ -57,17 +57,17 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
     #If these checks fail set to sc_world to nil, which will invalidate the Buffer.
     #result.input_num is needed for get_buffer(buffer, ins[0][0), as 1 is the minimum number for ins, for now...
     if input_num > omni_inputs:
-        omni_print_StrVal(exceeding_max_ugen_inputs, culong(omni_inputs))
+        omni_print_debug(exceeding_max_ugen_inputs, culong(omni_inputs))
         result.sc_world = nil
         result.input_num = 0
 
     elif input_num > 32:
-        omni_print_StrVal(upper_exceed_input_error, culong(input_num))
+        omni_print_debug(upper_exceed_input_error, culong(input_num))
         result.sc_world = nil
         result.input_num = 0
 
     elif input_num < 1:
-        omni_print_StrVal(lower_exceed_input_error, culong(input_num)) #this prints out a ridicolous number if < 0... ulong overflow. 
+        omni_print_debug(lower_exceed_input_error, culong(input_num)) #this prints out a ridicolous number if < 0... ulong overflow. 
         result.sc_world = nil
         result.input_num = 0
 

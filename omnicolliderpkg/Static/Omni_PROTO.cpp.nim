@@ -50,7 +50,7 @@ void RTFree_func(void* in_ptr)
 }
 
 //Wrappers around Print
-void RTPrint_StrVal_func(const char* format_string, size_t value)
+void RTPrint_debug_func(const char* format_string, size_t value)
 {
     ft->fPrint("%s%lu\n", format_string, value);
 }
@@ -120,7 +120,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
                     (omni_alloc_func_t*)RTAlloc_func, 
                     (omni_realloc_func_t*)RTRealloc_func, 
                     (omni_free_func_t*)RTFree_func, 
-                    (omni_print_StrVal_func_t*)RTPrint_StrVal_func,
+                    (omni_print_debug_func_t*)RTPrint_debug_func,
                     (omni_print_str_func_t*)RTPrint_str_func,
                     (omni_print_float_func_t*)RTPrint_float_func,
                     (omni_print_int_func_t*)RTPrint_int_func,

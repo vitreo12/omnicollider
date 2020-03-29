@@ -102,8 +102,8 @@ if(MINGW)
 endif()
 
 #Set optimizer flags
-set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -s -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -s -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
+set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
 
 #Build architecture.. I should get rid of this next bit, or remove it from the flags
 message(STATUS "BUILD ARCHITECTURE : ${BUILD_MARCH}")
