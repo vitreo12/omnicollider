@@ -4,15 +4,14 @@ Compile [omni](https://github.com/vitreo12/omni) code into [SuperCollider](https
 
 ## **Requirements**
 
-The software needed to run `omnicollider` is the same as `omni`'s, with the addition of [cmake](https://cmake.org/) for all platforms and
-[MinGW](http://mingw.org/) for Windows.
-
-### **Linux**
-
-Refer to your distribution's package manager and make sure you've got installed:
 1) [nim](https://nim-lang.org/)
 2) [git](https://git-scm.com/)
 3) [cmake](https://cmake.org/) 
+4) [gcc](https://gcc.gnu.org/) (`Linux` and `Windows`)  /  [clang](https://clang.llvm.org/) (`MacOS`)
+
+### **Linux**
+
+Refer to your distribution's package manager and make sure you've got installed `nim`, `git` and `cmake`.
 
 ### **MacOS**
 
@@ -24,6 +23,11 @@ To install `brew`, simply open the `Terminal` app and run this command :
 After `brew` has been installed, run the following command in the `Terminal` app to install `nim` and `cmake`:
 
     brew install nim cmake
+
+Then, make sure that the `~/.nimble/bin` directory is set in your shell `$PATH`.
+If using bash (the default shell in MacOS), simply edit (or create if it doesn't exist) the `~/.bash_profile` file and add this line to it: 
+
+    export PATH=$PATH:~/.nimble/bin
 
 ### **Windows:**
 
@@ -58,4 +62,5 @@ Then, install `omnicollider`:
 
 ## **Usage**
 
-    omnicollider -s:true ~/.nimble/pkgs/omni_lang-0.1.0/omni_lang/examples/OmniSaw.omni                                                                                        
+    omnicollider ~/.nimble/pkgs/omni_lang-0.1.0/omni_lang/examples/OmniSaw.omni                                                                             
+    
