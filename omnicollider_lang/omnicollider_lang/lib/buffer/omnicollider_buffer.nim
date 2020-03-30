@@ -48,6 +48,7 @@ const
 proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer =
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_obj))))
 
+    #Register this Buffer's memory to the ugen_auto_mem
     ugen_auto_mem.registerChild(result)
     
     result.sc_world  = get_sc_world()
