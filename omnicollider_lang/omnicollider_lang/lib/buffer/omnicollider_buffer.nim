@@ -45,8 +45,10 @@ const
     upper_exceed_input_error  = "ERROR [omni]: Buffer: Maximum input number is 32. Out of bounds: "
     lower_exceed_input_error  = "ERROR [omni]: Buffer: Minimum input number is 1. Out of bounds: "
 
-proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer) : Buffer =
+proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer =
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_obj))))
+
+    ugen_auto_mem.registerChild(result)
     
     result.sc_world  = get_sc_world()
     result.bufnum    = float32(-1e9)
@@ -73,7 +75,7 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
 
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    innerInit(Buffer, input_num, omni_inputs, buffer_interface) #omni_inputs belongs to the scope of the dsp module
+    innerInit(Buffer, input_num, omni_inputs, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
 
 proc destructor*(buffer : Buffer) : void =
     print("Calling Buffer's destructor")
