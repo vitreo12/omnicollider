@@ -46,7 +46,7 @@ const
     lower_exceed_input_error  = "ERROR [omni]: Buffer: Minimum input number is 1. Out of bounds: "
 
 proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer) : Buffer =
-    result = cast[Buffer](omni_alloc(cast[culong](sizeof(Buffer_obj))))
+    result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_obj))))
     
     result.sc_world  = get_sc_world()
     result.bufnum    = float32(-1e9)
