@@ -1,9 +1,5 @@
 import cligen, terminal, os, strutils, osproc
 
-include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
-include "omnicolliderpkg/Static/CMakeLists.txt.nim"
-include "omnicolliderpkg/Static/Omni_PROTO.sc.nim"
-
 #Package version is passed as argument when building. It will be constant and set correctly
 const 
     NimblePkgVersion {.strdefine.} = ""
@@ -42,22 +38,15 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider_single_file(omniFile : string, supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
-
-    let 
-        fullPathToFile = omniFile.normalizedPath().expandTilde().absolutePath()
-        
-        #This is the path to the original nim file to be used in shell.
-        #Using this one in nim command so that errors are shown on this one when CTRL+Click on terminal
-        #fullPathToOriginalOmniFileShell = fullPathToFile.replace(" ", "\\ ")
+proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
 
     #Check if file exists
-    if not fullPathToFile.existsFile():
-        printError($fullPathToFile & " does not exist.")
+    if not fileFullPath.existsFile():
+        printError($fileFullPath & " does not exist.")
         return 1
     
     var 
-        omniFile     = splitFile(fullPathToFile)
+        omniFile     = splitFile(fileFullPath)
         omniFileDir  = omniFile.dir
         omniFileName = omniFile.name
         omniFileExt  = omniFile.ext
@@ -68,7 +57,7 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
 
     #Check file extension
     if not(omniFileExt == ".omni") and not(omniFileExt == ".oi"):
-        printError($fullPathToFile & " is not an omni file.")
+        printError($fileFullPath & " is not an omni file.")
         return 1
 
     let expanded_sc_path = scPath.normalizedPath().expandTilde().absolutePath()
@@ -110,14 +99,14 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
     createDir(fullPathToNewFolder)
 
     #Copy omniFile to folder
-    copyFile(fullPathToFile, fullPathToOmniFile)
+    copyFile(fileFullPath, fullPathToOmniFile)
 
     # ================ #
     # COMPILE NIM FILE #
     # ================ #
 
     #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni \"" & $fullPathToFile & "\" -i:omnicollider_lang -l:static -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" -i:omnicollider_lang -l:static -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path... go figure!
     when not defined(Windows):
@@ -133,7 +122,7 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fullPathToFile & "\" -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when not defined(Windows):
@@ -189,11 +178,11 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
                 arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
 
                 if i == num_inputs:
-                    arg_string.add("in" & $i & ";")
+                    arg_string.add("in" & $i & "=0;")
                     multiNew_string.add("in" & $i & ");")
                     break
 
-                arg_string.add("in" & $i & ", ")
+                arg_string.add("in" & $i & "=0, ")
                 multiNew_string.add("in" & $i & ", ")
         
     #input names
@@ -210,13 +199,17 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
                 arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & ");});\n\t\t")
 
                 if index == num_inputs - 1:
-                    arg_string.add($input_name & ";")
+                    arg_string.add($input_name & "=0;")
                     multiNew_string.add($input_name & ");")
                     break
 
-                arg_string.add($input_name & ", ")
+                arg_string.add($input_name & "=0, ")
                 multiNew_string.add($input_name & ", ")
 
+    #These are the files to overwrite! Need them at every iteration
+    include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
+    include "omnicolliderpkg/Static/CMakeLists.txt.nim"
+    include "omnicolliderpkg/Static/Omni_PROTO.sc.nim"
     
     OMNI_PROTO_SC = OMNI_PROTO_SC.replace("//args", arg_string)
     OMNI_PROTO_SC = OMNI_PROTO_SC.replace("//rates", arg_rates)
@@ -348,7 +341,28 @@ proc omnicollider_single_file(omniFile : string, supernova : bool = true, archit
 
 proc omnicollider(omniFiles : seq[string], supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
     for omniFile in omniFiles:
-        if omnicollider_single_file(omniFile, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+        #Get full extended path
+        let omniFileFullPath = omniFile.normalizedPath().expandTilde().absolutePath()
+
+        #If it's a file, compile it
+        if omniFileFullPath.existsFile():
+            if omnicollider_single_file(omniFileFullPath, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+                return 1
+
+        #If it's a dir, compile all .omni/.oi files in it
+        elif omniFileFullPath.existsDir():
+            for kind, dirFile in walkDir(omniFileFullPath):
+                if kind == pcFile:
+                    let 
+                        dirFileFullPath = dirFile.normalizedPath().expandTilde().absolutePath()
+                        dirFileExt = dirFileFullPath.splitFile().ext
+                    
+                    if dirFileExt == ".omni" or dirFileExt == ".oi":
+                        if omnicollider_single_file(dirFileFullPath, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+                            return 1
+
+        else:
+            printError($omniFileFullPath & " does not exist.")
             return 1
     
     return 0
