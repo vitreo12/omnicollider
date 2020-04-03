@@ -18,7 +18,12 @@ bin = @["omnicollider"]
 
 #If using "nimble install" instead of "nimble installOmniCollider", make sure omnicollider-lang is still getting installed
 before install:
-    withDir(getPkgDir() & "/omnicollider_lang"):
+    let package_dir = getPkgDir()
+    
+    withDir(package_dir):
+        exec "git submodule update --init --recursive"
+
+    withDir(package_dir & "/omnicollider_lang"):
         exec "nimble install"
 
 #before/after are BOTH needed for any of the two to work
