@@ -45,8 +45,11 @@ const
     upper_exceed_input_error  = "ERROR [omni]: Buffer: Maximum input number is 32. Out of bounds: "
     lower_exceed_input_error  = "ERROR [omni]: Buffer: Minimum input number is 1. Out of bounds: "
 
-proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer) : Buffer =
+proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer {.inline.} =
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_obj))))
+
+    #Register this Buffer's memory to the ugen_auto_mem
+    ugen_auto_mem.registerChild(result)
     
     result.sc_world  = get_sc_world()
     result.bufnum    = float32(-1e9)
@@ -73,15 +76,11 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
 
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    innerInit(Buffer, input_num, omni_inputs, buffer_interface) #omni_inputs belongs to the scope of the dsp module
-
-proc destructor*(buffer : Buffer) : void =
-    print("Calling Buffer's destructor")
-    let buffer_ptr = cast[pointer](buffer)
-    omni_free(buffer_ptr)
+    innerInit(Buffer, input_num, omni_inputs, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
 
 #Called at start of perform. If supernova is active, this will also lock the buffer.
-proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool =
+#HERE THE WHOLE ins_Nim should be passed through, not just fbufnum (which is ins_Nim[buffer.input_num][0]).
+proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
     var bufnum = fbufnum
     if bufnum < 0.0:
         bufnum = 0.0
@@ -98,7 +97,7 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool =
 
 #Supernova unlocking
 when defined(multithreadBuffers):
-    proc unlock_buffer*(buffer : Buffer) : void =
+    proc unlock_buffer*(buffer : Buffer) : void {.inline.} =
         unlock_buffer_SC(cast[pointer](buffer.snd_buf))
 
 ##########
@@ -106,11 +105,11 @@ when defined(multithreadBuffers):
 ##########
 
 #1 channel
-proc `[]`*[I : SomeNumber](a : Buffer, i : I) : float32 =
+proc `[]`*[I : SomeNumber](a : Buffer, i : I) : float32 {.inline.} =
     return get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0))
 
 #more than 1 channel
-proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float32 =
+proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float32 {.inline.} =
     return get_float_value_buffer_SC(a.snd_buf, clong(i1), clong(i2))
 
 ##########
@@ -118,11 +117,11 @@ proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : flo
 ##########
 
 #1 channel
-proc `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : void =
+proc `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : void {.inline.} =
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i), clong(0))
 
 #more than 1 channel
-proc `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : void =
+proc `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : void {.inline.} =
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i1), clong(i2))
 
 #########
@@ -130,21 +129,21 @@ proc `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I
 #########
 
 #length of each frame in buffer
-proc len*(buffer : Buffer) : int =
+proc len*(buffer : Buffer) : int {.inline.} =
     return int(get_frames_buffer_SC(buffer.snd_buf))
 
 #Returns total size (snd_buf->samples)
-proc size*(buffer : Buffer) : int =
+proc size*(buffer : Buffer) : int {.inline.} =
     return int(get_samples_buffer_SC(buffer.snd_buf))
 
 #Number of channels
-proc nchans*(buffer : Buffer) : int =
+proc nchans*(buffer : Buffer) : int {.inline.} =
     return int(get_channels_buffer_SC(buffer.snd_buf))
 
 #Samplerate (float64)
-proc samplerate*(buffer : Buffer) : float =
+proc samplerate*(buffer : Buffer) : float {.inline.} =
     return float(get_samplerate_buffer_SC(buffer.snd_buf))
 
 #Sampledur (Float64)
-proc sampledur*(buffer : Buffer) : float =
+proc sampledur*(buffer : Buffer) : float {.inline.} =
     return float(get_sampledur_buffer_SC(buffer.snd_buf))
