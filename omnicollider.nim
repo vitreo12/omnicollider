@@ -166,7 +166,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
-    if io_file_seq.len != 4:
+    if io_file_seq.len != 5:
         printError("Invalid IO.txt file.")
         return 1
     
@@ -174,7 +174,9 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         num_inputs  = parseInt(io_file_seq[0])
         input_names_string = io_file_seq[1]
         input_names = input_names_string.split(',') #this is a seq now
-        num_outputs = parseInt(io_file_seq[2])
+        default_vals_string = io_file_seq[2]
+        default_vals = default_vals_string.split(',')
+        num_outputs = parseInt(io_file_seq[3])
     
     # ======== #
     # SC I / O #
@@ -195,16 +197,18 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
             multiNew_string.add(",")
             
             for i in 1..num_inputs:
+
+                let default_val = default_vals[i]
                 
                 arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
                 arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
 
                 if i == num_inputs:
-                    arg_string.add("in" & $i & "=0;")
+                    arg_string.add("in" & $i & "=" & $default_val & ";")
                     multiNew_string.add("in" & $i & ");")
                     break
 
-                arg_string.add("in" & $i & "=0, ")
+                arg_string.add("in" & $i & "=" & $default_val & ", ")
                 multiNew_string.add("in" & $i & ", ")
         
     #input names
@@ -216,16 +220,18 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
             multiNew_string.add(",")
             for index, input_name in input_names:
 
+                let default_val = default_vals[index]
+
                 #This duplication is not good at all. Find a neater way.
                 arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & ");});\n\t\t")
                 arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & ");});\n\t\t")
 
                 if index == num_inputs - 1:
-                    arg_string.add($input_name & "=0;")
+                    arg_string.add($input_name & "=" & $default_val & ";")
                     multiNew_string.add($input_name & ");")
                     break
 
-                arg_string.add($input_name & "=0, ")
+                arg_string.add($input_name & "=" & $default_val & ", ")
                 multiNew_string.add($input_name & ", ")
 
     #These are the files to overwrite! Need them at every iteration
