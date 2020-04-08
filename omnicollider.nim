@@ -198,7 +198,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
             
             for i in 1..num_inputs:
 
-                let default_val = default_vals[i]
+                let default_val = default_vals[i-1]
                 
                 arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
                 arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
@@ -271,7 +271,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     cppFile.close
     scFile.close
     cmakeFile.close
-    
+
     # ========== #
     # BUILD UGEN #
     # ========== #
