@@ -127,12 +127,12 @@ when defined(multithreadBuffers):
 ##########
 
 #1 channel
-proc `[]`*[I : SomeNumber](a : Buffer, i : I) : float32 {.inline.} =
-    return get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0))
+proc `[]`*[I : SomeNumber](a : Buffer, i : I) : float {.inline.} =
+    return float(get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0)))
 
 #more than 1 channel
-proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float32 {.inline.} =
-    return get_float_value_buffer_SC(a.snd_buf, clong(i1), clong(i2))
+proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float {.inline.} =
+    return float(get_float_value_buffer_SC(a.snd_buf, clong(i1), clong(i2)))
 
 ##########
 # SETTER #
