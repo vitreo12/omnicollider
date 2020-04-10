@@ -62,5 +62,5 @@ Then, install `omnicollider`:
 
 ## **Usage**
 
-    omnicollider ~/.nimble/pkgs/omni_lang-0.1.0/omni_lang/examples/OmniSaw.omni                                                                             
+    omnicollider ~/.nimble/pkgs/omni-0.1.0/examples/OmniSaw.omni                                                                             
     
