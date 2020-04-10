@@ -123,12 +123,12 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Copy omniFile to folder
     copyFile(fileFullPath, fullPathToOmniFile)
 
-    # ================ #
-    # COMPILE NIM FILE #
-    # ================ #
+    # ================= #
+    # COMPILE OMNI FILE #
+    # ================= #
 
-    #Compile nim file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni \"" & $fileFullPath & "\" -i:omnicollider_lang -l:static -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
+    #Compile omni file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
+    let omni_command = "omni \"" & $fileFullPath & "\" -i:omnicollider_lang -l:static -b:32 -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path... go figure!
     when not defined(Windows):
@@ -144,7 +144,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -b:32 -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when not defined(Windows):
