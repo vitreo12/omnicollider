@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import macros
+
 #If supernova defined, also pass the supernova flag to cpp
 when defined(multithreadBuffers):
     {.passC: "-D SUPERNOVA".}
@@ -68,12 +70,7 @@ type
 
     Buffer* = ptr Buffer_obj
 
-const
-    exceeding_max_ugen_inputs = "ERROR [omni]: Buffer: exceeding maximum number of inputs: "
-    upper_exceed_input_error  = "ERROR [omni]: Buffer: Maximum input number is 32. Out of bounds: "
-    lower_exceed_input_error  = "ERROR [omni]: Buffer: Minimum input number is 1. Out of bounds: "
-
-proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omni_inputs : int, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer {.inline.} =
+proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer {.inline.} =
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_obj))))
 
     #Register this Buffer's memory to the ugen_auto_mem
@@ -90,26 +87,28 @@ proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, omn
     result.chans = 0
     result.samplerate = 0.0
 
+#compile time check of input_num
+macro checkInputNum*(input_num_typed : typed, omni_inputs_typed : typed) : untyped =
+    let input_num_typed_kind = input_num_typed.kind
+    
+    if input_num_typed_kind != nnkIntLit:
+        error("Buffer input_num must be expressed as an integer literal value")
+    
+    let 
+        input_num = input_num_typed.intVal()
+        omni_inputs = omni_inputs_typed.intVal()
+
     #If these checks fail set to sc_world to nil, which will invalidate the Buffer.
     #result.input_num is needed for get_buffer(buffer, ins[0][0), as 1 is the minimum number for ins, for now...
-    if input_num > omni_inputs:
-        omni_print_debug(exceeding_max_ugen_inputs, culong(omni_inputs))
-        result.sc_world = nil
-        result.input_num = 0
-
-    elif input_num > 32:
-        omni_print_debug(upper_exceed_input_error, culong(input_num))
-        result.sc_world = nil
-        result.input_num = 0
-
+    if input_num > omni_inputs: 
+        error("Buffer: \"input_num\"" & $input_num & " is out of bounds: maximum number of inputs: " & $omni_inputs)
     elif input_num < 1:
-        omni_print_debug(lower_exceed_input_error, culong(input_num)) #this prints out a ridicolous number if < 0... ulong overflow. 
-        result.sc_world = nil
-        result.input_num = 0
+        error("Buffer: \"input_num\"" & $input_num & " is out of bounds: minimum input number is 1")
 
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    innerInit(Buffer, input_num, omni_inputs, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
+    checkInputNum(input_num, omni_inputs)
+    innerInit(Buffer, input_num, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
 
 #Called at start of perform. If supernova is active, this will also lock the buffer.
 #HERE THE WHOLE ins_Nim should be passed through, not just fbufnum (which is ins_Nim[buffer.input_num][0]).
@@ -179,21 +178,29 @@ proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : flo
 
 #linear interp read (1 channel)
 proc read*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
-    let 
-        buf_len = buffer.length
-        index1 = safemod(int(index), buf_len)
-        index2 = safemod(index1 + 1, buf_len)
-        frac : float  = float(index) - float(index1)
+    let buf_len = buffer.length
+    
+    if buf_len <= 0:
+        return 0.0
+        
+    let
+        index1 = int(index) mod buf_len
+        index2 = (index1 + 1) mod buf_len
+        frac : float = float(index) - float(index1)
     
     return linear_interp(frac, buffer[index1], buffer[index2])
 
 #linear interp read (more than 1 channel) (i1 == channel, i2 == index)
 proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
-    let 
-        buf_len = buffer.length
-        index1 = safemod(int(index), buf_len)
-        index2 = safemod(index1 + 1, buf_len)
-        frac : float  = float(index) - float(index1)
+    let buf_len = buffer.length
+    
+    if buf_len <= 0:
+        return 0.0
+
+    let
+        index1 = int(index) mod buf_len
+        index2 = (index1 + 1) mod buf_len
+        frac : float = float(index) - float(index1)
     
     return linear_interp(frac, buffer[chan, index1], buffer[chan, index2])
 
