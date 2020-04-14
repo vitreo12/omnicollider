@@ -70,7 +70,7 @@ type
 
     Buffer* = ptr Buffer_obj
 
-proc innerInit*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer {.inline.} =
+proc struct_init_inner*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem) : Buffer {.inline.} =
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_obj))))
 
     #Register this Buffer's memory to the ugen_auto_mem
@@ -105,10 +105,10 @@ macro checkInputNum*(input_num_typed : typed, omni_inputs_typed : typed) : untyp
     elif input_num < 1:
         error("Buffer: \"input_num\"" & $input_num & " is out of bounds: minimum input number is 1")
 
-#Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with initInner(Buffer, 1, omni_inputs)
+#Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with struct_init_inner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
     checkInputNum(input_num, omni_inputs)
-    innerInit(Buffer, input_num, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
+    struct_init_inner(Buffer, input_num, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
 
 #Called at start of perform. If supernova is active, this will also lock the buffer.
 #HERE THE WHOLE ins_Nim should be passed through, not just fbufnum (which is ins_Nim[buffer.input_num][0]).
