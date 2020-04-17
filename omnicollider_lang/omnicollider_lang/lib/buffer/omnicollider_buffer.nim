@@ -189,7 +189,7 @@ proc read*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return linear_interp(frac, buffer[index1], buffer[index2])
+    return float(linear_interp(frac, buffer[index1], buffer[index2]))
 
 #linear interp read (more than 1 channel) (i1 == channel, i2 == index)
 proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
@@ -204,7 +204,7 @@ proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index :
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return linear_interp(frac, buffer[chan, index1], buffer[chan, index2])
+    return float(linear_interp(frac, buffer[chan, index1], buffer[chan, index2]))
 
 ##########
 # SETTER #
