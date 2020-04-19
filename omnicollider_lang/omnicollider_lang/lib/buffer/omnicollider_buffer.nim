@@ -110,6 +110,11 @@ template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : unt
     checkInputNum(input_num, omni_inputs)
     struct_init_inner(Buffer, input_num, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
 
+#Needed for 
+proc checkValidity*(obj : Buffer, ugen_auto_buffer : ptr OmniAutoMem) : bool =
+    ugen_auto_buffer.registerChild(cast[pointer](obj))
+    return true
+
 #Called at start of perform. If supernova is active, this will also lock the buffer.
 #HERE THE WHOLE ins_Nim should be passed through, not just fbufnum (which is ins_Nim[buffer.input_num][0]).
 proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
