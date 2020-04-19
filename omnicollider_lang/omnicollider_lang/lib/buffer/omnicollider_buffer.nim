@@ -110,7 +110,7 @@ template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : unt
     checkInputNum(input_num, omni_inputs)
     struct_init_inner(Buffer, input_num, buffer_interface, ugen_auto_mem) #omni_inputs belongs to the scope of the dsp module
 
-#Needed for 
+#Register child so that it will be picked up in perform to run get_buffer / unlock_buffer
 proc checkValidity*(obj : Buffer, ugen_auto_buffer : ptr OmniAutoMem) : bool =
     ugen_auto_buffer.registerChild(cast[pointer](obj))
     return true
