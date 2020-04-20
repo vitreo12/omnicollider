@@ -57,7 +57,7 @@ proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 #proc get_sampledur_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 
 type
-    Buffer_obj = object
+    Buffer_obj* = object
         sc_world   : pointer
         snd_buf    : pointer
         bufnum     : float32
