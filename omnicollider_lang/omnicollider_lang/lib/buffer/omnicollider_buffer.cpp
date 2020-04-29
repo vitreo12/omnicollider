@@ -68,14 +68,9 @@ extern "C"
                 return nullptr;
             }
 
+            //If supernova, lock buffer aswell
             #ifdef SUPERNOVA
-                //It should be another custom function, work it out when doing supernova support.
-
-                /* This locking should not be here, as this happens only when retrieving a new buffer, not at every sample loop.
-                Another function should be called from omni side to do the locking accordingly. */
-
-                //printf("Lock supernova\n");
-                //LOCK_SNDBUF_SHARED(buf);
+            ACQUIRE_SNDBUF_SHARED(buf);
             #endif
 
             return (void*)buf;
@@ -84,31 +79,23 @@ extern "C"
         {
             printf("WARNING: Omni: local buffers are not yet supported \n");
             return nullptr;
-        
-            /* int localBufNum = bufnum - SCWorld->mNumSndBufs; 
-            
-            Graph *parent = unit->mParent; 
-            
-            if(localBufNum <= parent->localBufNum)
-                unit->m_buf = parent->mLocalSndBufs + localBufNum; 
-            else 
-            { 
-                bufnum = 0; 
-                unit->m_buf = SCWorld->mSndBufs + bufnum; 
-            } 
 
-            return (void*)buf;
-            */
+            //It would require to provide "unit" here (to retrieve parent). Perhaps it can be passed in void* buffer_interface?
         }
     }
 
     #ifdef SUPERNOVA
+    void lock_buffer_SC(void* buf)
+    {
+        SndBuf* snd_buf = (SndBuf*)buf;
+        ACQUIRE_SNDBUF_SHARED(snd_buf);
+        return;
+    }
+
     void unlock_buffer_SC(void* buf)
     {
-        /* UNLOCK THE BUFFER HERE... To be called at the end of perform macro (supernova) */
-
-        //printf("SUPERNOVA BUFFER!!!\n");
-
+        SndBuf* snd_buf = (SndBuf*)buf;
+        RELEASE_SNDBUF_SHARED(snd_buf);
         return;
     }
     #endif
@@ -122,8 +109,15 @@ extern "C"
     float get_float_value_buffer_SC(void* buf, long index, long channel)
     {
         SndBuf* snd_buf = (SndBuf*)buf;
+
+        int channels = snd_buf->channels;
                 
-        long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
+        long actual_index;
+
+        if (channels== 1)
+            actual_index = index;
+        else
+            actual_index = (index * channels) + channel; //Interleaved data
         
         if(index >= 0 && (actual_index < snd_buf->samples))
             return snd_buf->data[actual_index];
@@ -135,7 +129,14 @@ extern "C"
     {
         SndBuf* snd_buf = (SndBuf*)buf;
         
-        long actual_index = (index * snd_buf->channels) + channel; //Interleaved data
+        int channels = snd_buf->channels;
+                
+        long actual_index;
+
+        if (channels== 1)
+            actual_index = index;
+        else
+            actual_index = (index * channels) + channel; //Interleaved data
         
         if(index >= 0 && (actual_index < snd_buf->samples))
             snd_buf->data[actual_index] = value;
@@ -170,9 +171,9 @@ extern "C"
     }
 
     //Sampledur
-    double get_sampledur_buffer_SC(void* buf)
+    /* double get_sampledur_buffer_SC(void* buf)
     {
         SndBuf* snd_buf = (SndBuf*)buf;
         return snd_buf->sampledur;
-    }
+    } */
 }
