@@ -58,14 +58,14 @@ proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 
 type
     Buffer_obj* = object
-        sc_world   : pointer
-        snd_buf    : pointer
-        bufnum     : float32
-        input_num* : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
-        length     : int
-        size       : int
-        chans      : int
-        samplerate : float
+        sc_world    : pointer
+        snd_buf     : pointer
+        bufnum      : float32
+        input_num*  : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
+        length*     : int
+        size*       : int
+        chans*      : int
+        samplerate* : float
         #sampledur  : float
 
     Buffer* = ptr Buffer_obj
@@ -236,16 +236,16 @@ proc len*(buffer : Buffer) : int {.inline.} =
     return buffer.length
 
 #Returns total size (snd_buf->samples)
-proc size*(buffer : Buffer) : int {.inline.} =
-    return buffer.size
+#proc size*(buffer : Buffer) : int {.inline.} =
+#    return buffer.size
 
 #Number of channels
-proc chans*(buffer : Buffer) : int {.inline.} =
-    return buffer.chans
+#proc chans*(buffer : Buffer) : int {.inline.} =
+#    return buffer.chans
 
 #Samplerate (float64)
-proc samplerate*(buffer : Buffer) : float {.inline.} =
-    return buffer.samplerate
+#proc samplerate*(buffer : Buffer) : float {.inline.} =
+#    return buffer.samplerate
 
 #Sampledur (Float64)
 #[ proc sampledur*(buffer : Buffer) : float {.inline.} =
