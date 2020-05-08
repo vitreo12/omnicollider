@@ -109,6 +109,10 @@ macro checkInputNum*(input_num_typed : typed, omni_inputs_typed : typed) : untyp
     elif input_num < 1:
         error("Buffer: \"input_num\"" & $input_num & " is out of bounds: minimum input number is 1")
 
+template new_struct*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
+    checkInputNum(input_num, omni_inputs)
+    struct_init_inner(Buffer, input_num, buffer_interface, ugen_auto_mem, ugen_call_type) #omni_inputs belongs to the scope of the dsp module
+
 #Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with struct_init_inner(Buffer, 1, omni_inputs)
 template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
     checkInputNum(input_num, omni_inputs)
