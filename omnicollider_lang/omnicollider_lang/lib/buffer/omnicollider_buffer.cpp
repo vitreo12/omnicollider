@@ -34,7 +34,9 @@ extern "C"
 
     void init_sc_world(void* inWorld)
     {
+        #ifdef OMNI_DEBUG
         printf("Calling init_world\n");
+        #endif
 
         if(!inWorld)
             printf("ERROR: Invalid SCWorld\n");
