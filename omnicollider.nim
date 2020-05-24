@@ -72,6 +72,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         omniFileDir  = omniFile.dir
         omniFileName = omniFile.name
         omniFileExt  = omniFile.ext
+    
+    let originalOmniFileName = omniFileName
 
     #Check file first charcter, must be a capital letter
     if not omniFileName[0].isUpperAscii:
@@ -138,7 +140,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
-        printError("Unsuccessful compilation of " & $omniFileName & $omniFileExt & ".")
+        printError("Unsuccessful compilation of " & $originalOmniFileName & $omniFileExt & ".")
         return 1
     
     #Also for supernova
@@ -154,7 +156,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
-            printError("Unsuccessful supernova compilation of " & $omniFileName & $omniFileExt & ".")
+            printError("Unsuccessful supernova compilation of " & $originalOmniFileName & $omniFileExt & ".")
             return 1
     
     # ================ #
