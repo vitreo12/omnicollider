@@ -72,6 +72,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         omniFileDir  = omniFile.dir
         omniFileName = omniFile.name
         omniFileExt  = omniFile.ext
+    
+    let originalOmniFileName = omniFileName
 
     #Check file first charcter, must be a capital letter
     if not omniFileName[0].isUpperAscii:
@@ -138,7 +140,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
-        printError("Unsuccessful compilation of " & $omniFileName & $omniFileExt & ".")
+        printError("Unsuccessful compilation of " & $originalOmniFileName & $omniFileExt & ".")
         return 1
     
     #Also for supernova
@@ -154,7 +156,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
-            printError("Unsuccessful supernova compilation of " & $omniFileName & $omniFileExt & ".")
+            printError("Unsuccessful supernova compilation of " & $originalOmniFileName & $omniFileExt & ".")
             return 1
     
     # ================ #
@@ -200,8 +202,12 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
                 let default_val = default_vals[(i - 1)]
                 
-                arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
-                arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & ");});\n\t\t")
+                when defined(omni_debug):
+                    arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
+                    arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
+                else:
+                    arg_rates.add("if(in" & $i & ".class == Buffer, { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
+                    arg_rates.add("if(in" & $i & ".rate != 'audio', { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
 
                 if i == num_inputs:
                     arg_string.add("in" & $i & "=" & $default_val & ";")
@@ -223,8 +229,12 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                 let default_val = default_vals[index]
 
                 #This duplication is not good at all. Find a neater way.
-                arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & ");});\n\t\t")
-                arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & ");});\n\t\t")
+                when defined(omni_debug):
+                    arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                else:
+                    arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
                 if index == num_inputs - 1:
                     arg_string.add($input_name & "=" & $default_val & ";")
@@ -234,7 +244,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                 arg_string.add($input_name & "=" & $default_val & ", ")
                 multiNew_string.add($input_name & ", ")
 
-    #These are the files to overwrite! Need them at every iteration
+    #These are the files to overwrite! Need them at every iteration (when compiling multiple files or a folder)
     include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
     include "omnicolliderpkg/Static/CMakeLists.txt.nim"
     include "omnicolliderpkg/Static/Omni_PROTO.sc.nim"
