@@ -181,16 +181,26 @@ when defined(multithreadBuffers):
 # GETTER #
 ##########
 
-#1 channel
-proc `[]`*[I : SomeNumber](a : Buffer, i : I) : float {.inline.} =
+proc get_float_value_buffer* [I : SomeNumber](a : Buffer, i : I) : float {.inline.} =
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0)))
 
-#more than 1 channel (i1 == channel, i2 == index)
-proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float {.inline.} =
+proc get_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float {.inline.} =
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i2), clong(i1)))
 
+#1 channel
+template `[]`*[I : SomeNumber](a : Buffer, i : I) : untyped {.dirty.} =
+    when ugen_call_type is not PerformCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+    get_float_value_buffer(a, i)
+
+#more than 1 channel (i1 == channel, i2 == index)
+template `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : untyped {.dirty.} =
+    when ugen_call_type is not PerformCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+    get_float_value_buffer(a, i1, i2)
+
 #linear interp read (1 channel)
-proc read*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
+proc read_inner*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
     let buf_len = buffer.length
     
     if buf_len <= 0:
@@ -203,9 +213,9 @@ proc read*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
         frac : float = float(index) - float(index_int)
     
     return float(linear_interp(frac, buffer[index1], buffer[index2]))
-
+        
 #linear interp read (more than 1 channel) (i1 == channel, i2 == index)
-proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
+proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
     let buf_len = buffer.length
     
     if buf_len <= 0:
@@ -219,17 +229,37 @@ proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index :
     
     return float(linear_interp(frac, buffer[chan, index1], buffer[chan, index2]))
 
+template read*[I : SomeNumber](buffer : Buffer, index : I) : untyped {.dirty.} =
+    when ugen_call_type is not PerformCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+    read_inner(buffer, index)
+
+template read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : untyped {.dirty.} =
+    when ugen_call_type is not PerformCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+    read_inner(buffer, chan, index)
+
 ##########
 # SETTER #
 ##########
 
-#1 channel
-proc `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : void {.inline.} =
+proc set_float_value_buffer*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : void {.inline.} =
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i), clong(0))
 
-#more than 1 channel (i1 == channel, i2 == index)
-proc `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : void {.inline.} =
+proc set_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : void {.inline.} =
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i2), clong(i1))
+
+#1 channel
+template `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : untyped {.dirty.} =
+    when ugen_call_type is not PerformCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+    set_float_value_buffer(a, i, x)
+
+#more than 1 channel (i1 == channel, i2 == index)
+template `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : untyped {.dirty.} =
+    when ugen_call_type is not PerformCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+    set_float_value_buffer(a, x, i2, i1)
 
 #########
 # INFOS #
