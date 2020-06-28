@@ -224,7 +224,7 @@ proc read_inner*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} 
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return float(linear_interp(frac, buffer[index1], buffer[index2]))
+    return float(linear_interp(frac, get_float_value_buffer(buffer, index1), get_float_value_buffer(buffer, index2)))
         
 #linear interp read (more than 1 channel) (i1 == channel, i2 == index)
 proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
@@ -239,7 +239,7 @@ proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, i
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return float(linear_interp(frac, buffer[chan, index1], buffer[chan, index2]))
+    return float(linear_interp(frac, get_float_value_buffer(buffer, chan, index1), get_float_value_buffer(buffer, chan, index2)))
 
 template read*[I : SomeNumber](buffer : Buffer, index : I) : untyped {.dirty.} =
     when ugen_call_type is not PerformCall:
