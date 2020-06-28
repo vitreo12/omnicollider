@@ -33,7 +33,7 @@ when defined(multithreadBuffers):
 {.passC: "-O3".}
 
 #Wrapping of cpp functions
-proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat) : pointer {.importc, cdecl.}
+proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
 
 #To retrieve world
 proc get_sc_world*() : pointer {.importc, cdecl.}
@@ -58,15 +58,16 @@ proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 
 type
     Buffer_struct_inner* = object
-        sc_world    : pointer
-        snd_buf     : pointer
-        bufnum      : float32
-        input_num*  : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
-        length*     : int
-        size*       : int
-        chans*      : int
-        samplerate* : float
-        #sampledur  : float
+        sc_world      : pointer
+        snd_buf       : pointer
+        bufnum        : float32
+        print_invalid : bool
+        input_num*    : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
+        length*       : int
+        size*         : int
+        chans*        : int
+        samplerate*   : float
+        #sampledur    : float
 
     Buffer* = ptr Buffer_struct_inner
 
@@ -85,6 +86,8 @@ proc struct_new_inner*[S : SomeInteger](obj_type : typedesc[Buffer], input_num :
 
     #1 should be 0, 2 1, 3 2, etc... 32 31
     result.input_num = int(input_num) - int(1)
+
+    result.print_invalid = true
 
     result.length = 0
     result.size = 0
@@ -135,6 +138,8 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
         #If same buffer number, just lock it
         if buffer.bufnum == bufnum:
             if isNil(buffer.snd_buf):
+                buffer.bufnum = float32(-1e9)
+                buffer.print_invalid = false #stop printing invalid buffer
                 return false
             
             lock_buffer_SC(buffer.snd_buf)
@@ -142,12 +147,15 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
         #Retrieve and lock the new buffer
         else:
             #When supernova defined, get_buffer_SC will also lock the buffer!
-            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum))
+            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
             buffer.bufnum  = bufnum
 
             if isNil(buffer.snd_buf):
+                buffer.bufnum = float32(-1e9)
+                buffer.print_invalid = false #stop printing invalid buffer
                 return false
-
+            
+            buffer.print_invalid = true #next time an invalid buffer is provided, print it out
             buffer.length     = int(get_frames_buffer_SC(buffer.snd_buf))
             buffer.size       = int(get_samples_buffer_SC(buffer.snd_buf))
             buffer.chans      = int(get_channels_buffer_SC(buffer.snd_buf))
@@ -156,16 +164,20 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
     else:
         #Update buffer pointer only with a new buffer number as input
         if buffer.bufnum != bufnum:
-            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum))
+            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
             buffer.bufnum  = bufnum
             
             if not isNil(buffer.snd_buf):
+                buffer.print_invalid = true #next time an invalid buffer is provided, print it out
                 buffer.length     = int(get_frames_buffer_SC(buffer.snd_buf))
                 buffer.size       = int(get_samples_buffer_SC(buffer.snd_buf))
                 buffer.chans      = int(get_channels_buffer_SC(buffer.snd_buf))
                 buffer.samplerate = float(get_samplerate_buffer_SC(buffer.snd_buf))
 
+        #If isNil, also reset the bufnum
         if isNil(buffer.snd_buf):
+            buffer.bufnum = float32(-1e9)
+            buffer.print_invalid = false #stop printing invalid buffer
             return false
     
     return true

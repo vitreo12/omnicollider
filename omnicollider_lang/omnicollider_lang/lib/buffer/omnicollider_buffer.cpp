@@ -50,7 +50,7 @@ extern "C"
     }
 
     //Called at start of perform (scsynth)
-    void* get_buffer_SC(void* buffer_SCWorld, float fbufnum)
+    void* get_buffer_SC(void* buffer_SCWorld, float fbufnum, int print_invalid)
     {
         if(!buffer_SCWorld)
             return nullptr;
@@ -66,7 +66,8 @@ extern "C"
 
             if(!buf->data)
             {
-                printf("WARNING: Omni: Invalid buffer: %d\n", bufnum);
+                if(print_invalid)
+                    printf("WARNING: Omni: Invalid buffer: %d\n", bufnum);
                 return nullptr;
             }
 
