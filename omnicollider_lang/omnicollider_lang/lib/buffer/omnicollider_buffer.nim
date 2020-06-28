@@ -193,26 +193,29 @@ when defined(multithreadBuffers):
 # GETTER #
 ##########
 
-proc get_float_value_buffer* [I : SomeNumber](a : Buffer, i : I) : float {.inline.} =
+proc get_float_value_buffer* [I : SomeNumber](a : Buffer, i : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0)))
 
-proc get_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float {.inline.} =
+proc get_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i2), clong(i1)))
 
 #1 channel
 template `[]`*[I : SomeNumber](a : Buffer, i : I) : untyped {.dirty.} =
-    when ugen_call_type is not PerformCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    get_float_value_buffer(a, i)
+    get_float_value_buffer(a, i, ugen_call_type)
 
 #more than 1 channel (i1 == channel, i2 == index)
 template `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : untyped {.dirty.} =
-    when ugen_call_type is not PerformCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    get_float_value_buffer(a, i1, i2)
+    get_float_value_buffer(a, i1, i2, ugen_call_type)
 
 #linear interp read (1 channel)
-proc read_inner*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
+proc read_inner*[I : SomeNumber](buffer : Buffer, index : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+
     let buf_len = buffer.length
     
     if buf_len <= 0:
@@ -224,10 +227,13 @@ proc read_inner*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} 
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return float(linear_interp(frac, get_float_value_buffer(buffer, index1), get_float_value_buffer(buffer, index2)))
+    return float(linear_interp(frac, get_float_value_buffer(buffer, index1, ugen_call_type), get_float_value_buffer(buffer, index2, ugen_call_type)))
         
 #linear interp read (more than 1 channel) (i1 == channel, i2 == index)
-proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
+proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+
     let buf_len = buffer.length
     
     if buf_len <= 0:
@@ -239,39 +245,35 @@ proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, i
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return float(linear_interp(frac, get_float_value_buffer(buffer, chan, index1), get_float_value_buffer(buffer, chan, index2)))
+    return float(linear_interp(frac, get_float_value_buffer(buffer, chan, index1, ugen_call_type), get_float_value_buffer(buffer, chan, index2, ugen_call_type)))
 
 template read*[I : SomeNumber](buffer : Buffer, index : I) : untyped {.dirty.} =
-    when ugen_call_type is not PerformCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    read_inner(buffer, index)
+    read_inner(buffer, index, ugen_call_type)
 
 template read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : untyped {.dirty.} =
-    when ugen_call_type is not PerformCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    read_inner(buffer, chan, index)
+    read_inner(buffer, chan, index, ugen_call_type)
 
 ##########
 # SETTER #
 ##########
 
-proc set_float_value_buffer*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : void {.inline.} =
+proc set_float_value_buffer*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i), clong(0))
 
-proc set_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : void {.inline.} =
+proc set_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i2), clong(i1))
 
 #1 channel
 template `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : untyped {.dirty.} =
-    when ugen_call_type is not PerformCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    set_float_value_buffer(a, i, x)
+    set_float_value_buffer(a, i, x, ugen_call_type)
 
 #more than 1 channel (i1 == channel, i2 == index)
 template `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : untyped {.dirty.} =
-    when ugen_call_type is not PerformCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    set_float_value_buffer(a, x, i2, i1)
+    set_float_value_buffer(a, i1, i2, x, ugen_call_type)
 
 #########
 # INFOS #
