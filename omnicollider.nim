@@ -324,6 +324,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     when not(defined(Windows)):
         let 
             sc_compilation_cmd = "make"
+            #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
             failedSCCompilation = execCmd(sc_compilation_cmd)
     else:
         let 
