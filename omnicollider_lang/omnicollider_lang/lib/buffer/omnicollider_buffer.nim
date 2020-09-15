@@ -86,6 +86,8 @@ proc struct_new_inner*[S : SomeInteger](obj_type : typedesc[Buffer], input_num :
 
     #1 should be 0, 2 1, 3 2, etc... 32 31
     result.input_num = int(input_num) - int(1)
+    if result.input_num < 0:
+        result.input_num = 0
 
     result.print_invalid = true
 

@@ -67,7 +67,7 @@ extern "C"
             if(!buf->data)
             {
                 if(print_invalid)
-                    printf("WARNING: Omni: Invalid buffer: %d\n", bufnum);
+                    printf("WARNING: Omni: Invalid buffer at index %d\n", bufnum);
                 return nullptr;
             }
 
@@ -117,7 +117,7 @@ extern "C"
                 
         long actual_index;
 
-        if (channels== 1)
+        if (channels == 1)
             actual_index = index;
         else
             actual_index = (index * channels) + channel; //Interleaved data
@@ -136,7 +136,7 @@ extern "C"
                 
         long actual_index;
 
-        if (channels== 1)
+        if (channels == 1)
             actual_index = index;
         else
             actual_index = (index * channels) + channel; //Interleaved data
