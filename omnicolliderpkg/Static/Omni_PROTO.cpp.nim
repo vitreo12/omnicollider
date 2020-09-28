@@ -111,9 +111,10 @@ struct Omni_PROTO : public Unit
 };
 
 //SC functions
-static void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples);
 static void Omni_PROTO_Ctor(Omni_PROTO* unit);
 static void Omni_PROTO_Dtor(Omni_PROTO* unit);
+static void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples);
+static void Omni_PROTO_silence_next(Omni_PROTO* unit, int inNumSamples);
 
 void Omni_PROTO_Ctor(Omni_PROTO* unit) 
 {
@@ -167,9 +168,16 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         unit->omni_ugen = nullptr;
     }
         
-    SETCALC(Omni_PROTO_next);
-    
-    Omni_PROTO_next(unit, 1);
+    if(unit->omni_ugen)
+    {
+        SETCALC(Omni_PROTO_next);
+        Omni_PROTO_next(unit, 1);
+    }
+    else
+    {
+        SETCALC(Omni_PROTO_silence_next);
+        Omni_PROTO_silence_next(unit, 1);
+    }
 }
 
 void Omni_PROTO_Dtor(Omni_PROTO* unit) 
@@ -180,15 +188,15 @@ void Omni_PROTO_Dtor(Omni_PROTO* unit)
 
 void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples) 
 {
-    if(unit->omni_ugen)
-        Omni_UGenPerform32(unit->omni_ugen, unit->mInBuf, unit->mOutBuf, inNumSamples);
-    else
+    Omni_UGenPerform32(unit->omni_ugen, unit->mInBuf, unit->mOutBuf, inNumSamples);
+}
+
+void Omni_PROTO_silence_next(Omni_PROTO* unit, int inNumSamples)
+{
+    for(int i = 0; i < unit->mNumOutputs; i++)
     {
-        for(int i = 0; i < unit->mNumOutputs; i++)
-        {
-            for(int y = 0; y < inNumSamples; y++)
-                unit->mOutBuf[i][y] = 0.0f;
-        }
+        for(int y = 0; y < inNumSamples; y++)
+            unit->mOutBuf[i][y] = 0.0f;
     }
 }
 
