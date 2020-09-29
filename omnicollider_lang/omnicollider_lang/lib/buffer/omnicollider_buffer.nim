@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import macros
-
 #If supernova defined, also pass the supernova flag to cpp
 when defined(multithreadBuffers):
     {.passC: "-D SUPERNOVA".}
@@ -33,7 +31,7 @@ when defined(multithreadBuffers):
 {.passC: "-O3".}
 
 #Wrapping of cpp functions
-proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat) : pointer {.importc, cdecl.}
+proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
 
 #To retrieve world
 proc get_sc_world*() : pointer {.importc, cdecl.}
@@ -58,19 +56,22 @@ proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 
 type
     Buffer_struct_inner* = object
-        sc_world    : pointer
-        snd_buf     : pointer
-        bufnum      : float32
-        input_num*  : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
-        length*     : int
-        size*       : int
-        chans*      : int
-        samplerate* : float
-        #sampledur  : float
+        sc_world      : pointer
+        snd_buf       : pointer
+        bufnum        : float32
+        print_invalid : bool
+        input_num*    : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
+        length*       : int
+        size*         : int
+        chans*        : int
+        samplerate*   : float
+        #sampledur    : float
 
     Buffer* = ptr Buffer_struct_inner
 
-proc struct_new_inner*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S, buffer_interface : pointer, ugen_auto_mem : ptr OmniAutoMem, ugen_call_type : typedesc[CallType] = InitCall) : Buffer {.inline.} =
+    Buffer_struct_export* = Buffer
+
+proc Buffer_struct_new_inner*[S : SomeInteger](input_num : S, buffer_interface : pointer, obj_type : typedesc[Buffer_struct_export], ugen_auto_mem : ptr OmniAutoMem, ugen_call_type : typedesc[CallType] = InitCall) : Buffer {.inline.} =
     #Trying to allocate in perform block! nonono
     when ugen_call_type is PerformCall:
         {.fatal: "attempting to allocate memory in the `perform` or `sample` blocks for `struct Buffer`".}
@@ -85,38 +86,15 @@ proc struct_new_inner*[S : SomeInteger](obj_type : typedesc[Buffer], input_num :
 
     #1 should be 0, 2 1, 3 2, etc... 32 31
     result.input_num = int(input_num) - int(1)
+    if result.input_num < 0:
+        result.input_num = 0
+
+    result.print_invalid = true
 
     result.length = 0
     result.size = 0
     result.chans = 0
     result.samplerate = 0.0
-
-#compile time check of input_num
-macro checkInputNum*(input_num_typed : typed, omni_inputs_typed : typed) : untyped =
-    let input_num_typed_kind = input_num_typed.kind
-    
-    if input_num_typed_kind != nnkIntLit:
-        error("Buffer input_num must be expressed as an integer literal value")
-    
-    let 
-        input_num = input_num_typed.intVal()
-        omni_inputs = omni_inputs_typed.intVal()
-
-    #If these checks fail set to sc_world to nil, which will invalidate the Buffer.
-    #result.input_num is needed for get_buffer(buffer, ins[0][0), as 1 is the minimum number for ins, for now...
-    if input_num > omni_inputs: 
-        error("Buffer: \"input_num\"" & $input_num & " is out of bounds: maximum number of inputs: " & $omni_inputs)
-    elif input_num < 1:
-        error("Buffer: \"input_num\"" & $input_num & " is out of bounds: minimum input number is 1")
-
-template struct_new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    checkInputNum(input_num, omni_inputs)
-    struct_new_inner(Buffer, input_num, buffer_interface, ugen_auto_mem, ugen_call_type) #omni_inputs belongs to the scope of the dsp module
-
-#Template which also uses the const omni_inputs, which belongs to the omni dsp new module. It will string substitute Buffer.init(1) with struct_init_inner(Buffer, 1, omni_inputs)
-template new*[S : SomeInteger](obj_type : typedesc[Buffer], input_num : S) : untyped =
-    checkInputNum(input_num, omni_inputs)
-    struct_new_inner(Buffer, input_num, buffer_interface, ugen_auto_mem, ugen_call_type) #omni_inputs belongs to the scope of the dsp module
 
 #Register child so that it will be picked up in perform to run get_buffer / unlock_buffer
 proc checkValidity*(obj : Buffer, ugen_auto_buffer : ptr OmniAutoMem) : bool =
@@ -135,6 +113,8 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
         #If same buffer number, just lock it
         if buffer.bufnum == bufnum:
             if isNil(buffer.snd_buf):
+                buffer.bufnum = float32(-1e9)
+                buffer.print_invalid = false #stop printing invalid buffer
                 return false
             
             lock_buffer_SC(buffer.snd_buf)
@@ -142,12 +122,15 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
         #Retrieve and lock the new buffer
         else:
             #When supernova defined, get_buffer_SC will also lock the buffer!
-            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum))
+            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
             buffer.bufnum  = bufnum
 
             if isNil(buffer.snd_buf):
+                buffer.bufnum = float32(-1e9)
+                buffer.print_invalid = false #stop printing invalid buffer
                 return false
-
+            
+            buffer.print_invalid = true #next time an invalid buffer is provided, print it out
             buffer.length     = int(get_frames_buffer_SC(buffer.snd_buf))
             buffer.size       = int(get_samples_buffer_SC(buffer.snd_buf))
             buffer.chans      = int(get_channels_buffer_SC(buffer.snd_buf))
@@ -156,16 +139,20 @@ proc get_buffer*(buffer : Buffer, fbufnum : float32) : bool {.inline.} =
     else:
         #Update buffer pointer only with a new buffer number as input
         if buffer.bufnum != bufnum:
-            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum))
+            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
             buffer.bufnum  = bufnum
             
             if not isNil(buffer.snd_buf):
+                buffer.print_invalid = true #next time an invalid buffer is provided, print it out
                 buffer.length     = int(get_frames_buffer_SC(buffer.snd_buf))
                 buffer.size       = int(get_samples_buffer_SC(buffer.snd_buf))
                 buffer.chans      = int(get_channels_buffer_SC(buffer.snd_buf))
                 buffer.samplerate = float(get_samplerate_buffer_SC(buffer.snd_buf))
 
+        #If isNil, also reset the bufnum
         if isNil(buffer.snd_buf):
+            buffer.bufnum = float32(-1e9)
+            buffer.print_invalid = false #stop printing invalid buffer
             return false
     
     return true
@@ -181,16 +168,29 @@ when defined(multithreadBuffers):
 # GETTER #
 ##########
 
-#1 channel
-proc `[]`*[I : SomeNumber](a : Buffer, i : I) : float {.inline.} =
+proc get_float_value_buffer* [I : SomeNumber](a : Buffer, i : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0)))
 
-#more than 1 channel (i1 == channel, i2 == index)
-proc `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : float {.inline.} =
+proc get_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i2), clong(i1)))
 
+#1 channel
+template `[]`*[I : SomeNumber](a : Buffer, i : I) : untyped {.dirty.} =
+    get_float_value_buffer(a, i, ugen_call_type)
+
+#more than 1 channel (i1 == channel, i2 == index)
+template `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : untyped {.dirty.} =
+    get_float_value_buffer(a, i1, i2, ugen_call_type)
+
 #linear interp read (1 channel)
-proc read*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
+proc read_inner*[I : SomeNumber](buffer : Buffer, index : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+
     let buf_len = buffer.length
     
     if buf_len <= 0:
@@ -202,10 +202,13 @@ proc read*[I : SomeNumber](buffer : Buffer, index : I) : float {.inline.} =
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return float(linear_interp(frac, buffer[index1], buffer[index2]))
-
+    return float(linear_interp(frac, get_float_value_buffer(buffer, index1, ugen_call_type), get_float_value_buffer(buffer, index2, ugen_call_type)))
+        
 #linear interp read (more than 1 channel) (i1 == channel, i2 == index)
-proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : float {.inline.} =
+proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
+
     let buf_len = buffer.length
     
     if buf_len <= 0:
@@ -217,19 +220,35 @@ proc read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index :
         index2 = (index1 + 1) mod buf_len
         frac : float = float(index) - float(index_int)
     
-    return float(linear_interp(frac, buffer[chan, index1], buffer[chan, index2]))
+    return float(linear_interp(frac, get_float_value_buffer(buffer, chan, index1, ugen_call_type), get_float_value_buffer(buffer, chan, index2, ugen_call_type)))
+
+template read*[I : SomeNumber](buffer : Buffer, index : I) : untyped {.dirty.} =
+    read_inner(buffer, index, ugen_call_type)
+
+template read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : untyped {.dirty.} =
+    read_inner(buffer, chan, index, ugen_call_type)
 
 ##########
 # SETTER #
 ##########
 
-#1 channel
-proc `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : void {.inline.} =
+proc set_float_value_buffer*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i), clong(0))
 
-#more than 1 channel (i1 == channel, i2 == index)
-proc `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : void {.inline.} =
+proc set_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+    when ugen_call_type is InitCall:
+        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i2), clong(i1))
+
+#1 channel
+template `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : untyped {.dirty.} =
+    set_float_value_buffer(a, i, x, ugen_call_type)
+
+#more than 1 channel (i1 == channel, i2 == index)
+template `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : untyped {.dirty.} =
+    set_float_value_buffer(a, i1, i2, x, ugen_call_type)
 
 #########
 # INFOS #

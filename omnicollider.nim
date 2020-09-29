@@ -210,11 +210,11 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                     arg_rates.add("if(in" & $i & ".rate != 'audio', { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
 
                 if i == num_inputs:
-                    arg_string.add("in" & $i & "=" & $default_val & ";")
+                    arg_string.add("in" & $i & "=(" & $default_val & ");")
                     multiNew_string.add("in" & $i & ");")
                     break
 
-                arg_string.add("in" & $i & "=" & $default_val & ", ")
+                arg_string.add("in" & $i & "=(" & $default_val & "), ")
                 multiNew_string.add("in" & $i & ", ")
         
     #input names
@@ -237,11 +237,11 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                     arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
                 if index == num_inputs - 1:
-                    arg_string.add($input_name & "=" & $default_val & ";")
+                    arg_string.add($input_name & "=(" & $default_val & ");")
                     multiNew_string.add($input_name & ");")
                     break
 
-                arg_string.add($input_name & "=" & $default_val & ", ")
+                arg_string.add($input_name & "=(" & $default_val & "), ")
                 multiNew_string.add($input_name & ", ")
 
     #These are the files to overwrite! Need them at every iteration (when compiling multiple files or a folder)
@@ -324,6 +324,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     when not(defined(Windows)):
         let 
             sc_compilation_cmd = "make"
+            #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
             failedSCCompilation = execCmd(sc_compilation_cmd)
     else:
         let 
