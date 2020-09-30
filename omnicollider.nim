@@ -130,7 +130,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # ================= #
 
     #Compile omni file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni \"" & $fileFullPath & "\" -i:omnicollider_lang -l:static -b:32 -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" -a:" & $architecture & " -i:omnicollider_lang -l:static -b:32 -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path... go figure!
     when not defined(Windows):
@@ -146,7 +146,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -b:32 -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -a:" & $architecture & " -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -b:32 -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when not defined(Windows):
@@ -330,7 +330,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         let 
             sc_compilation_cmd  = "mingw32-make"
             #sc_compilation_cmd = "cmake --build . --config Release"
-            failedSCCompilation = execShellCmd(sc_compilation_cmd)
+            failedSCCompilation = execShellCmd(sc_compilation_cmd) #execCmd doesn't work on Windows (since it wouldn't go through the powershell)
         
     
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.

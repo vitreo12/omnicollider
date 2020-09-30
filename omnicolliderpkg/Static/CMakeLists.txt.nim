@@ -124,12 +124,23 @@ if(MINGW)
 endif()
 
 #Set optimizer flags
-set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -march=${BUILD_MARCH} -mtune=${BUILD_MARCH}")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -DNDEBUG -march=${BUILD_MARCH}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG -march=${BUILD_MARCH}")
+set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -DNDEBUG -march=${BUILD_MARCH}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -march=${BUILD_MARCH}")
 
-#Build architecture.. I should get rid of this next bit, or remove it from the flags
+#Build architecture... Should I just get rid of this since it's set in C and CXX flags?
 message(STATUS "BUILD ARCHITECTURE : ${BUILD_MARCH}")
-add_definitions(-march=${BUILD_MARCH} -mtune=${BUILD_MARCH})
+add_definitions(-march=${BUILD_MARCH})
+
+#If native, also add mtune=native
+if (BUILD_MARCH STREQUAL "native")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -mtune=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native")
+    set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} -mtune=native")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mtune=native")
+    add_definitions(-mtune=native)
+endif()
 
 #Declare the new UGen shared lib to build
 add_library(${PROJECT} MODULE ${FILENAME})
