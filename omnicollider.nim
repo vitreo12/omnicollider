@@ -141,6 +141,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
         printError("Unsuccessful compilation of " & $originalOmniFileName & $omniFileExt & ".")
+        removeDir(fullPathToNewFolder)
         return 1
     
     #Also for supernova
@@ -157,6 +158,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
             printError("Unsuccessful supernova compilation of " & $originalOmniFileName & $omniFileExt & ".")
+            removeDir(fullPathToNewFolder)
             return 1
     
     # ================ #
@@ -170,6 +172,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
     if io_file_seq.len != 5:
         printError("Invalid IO.txt file.")
+        removeDir(fullPathToNewFolder)
         return 1
     
     let 
@@ -318,6 +321,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCmake > 0:
         printError("Unsuccessful cmake generation of the UGen file \"" & $omniFileName & ".cpp\".")
+        removeDir(fullPathToNewFolder)
         return 1
 
     #make command
@@ -336,6 +340,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCompilation > 0:
         printError("Unsuccessful compilation of the UGen file \"" & $omniFileName & ".cpp\".")
+        removeDir(fullPathToNewFolder)
         return 1
     
     #cd back to the original folder where omni file is
