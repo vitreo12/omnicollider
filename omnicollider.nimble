@@ -25,8 +25,8 @@ author        = "Francesco Cameli"
 description   = "SuperCollider wrapper for omni."
 license       = "MIT"
 
-requires "nim >= 1.4.0"
-requires "cligen >= 0.9.41"
+requires "nim >= 1.0.0"
+requires "cligen >= 1.0.0"
 requires "omni >= 0.2.2"
 
 #Ignore omnicollider_lang

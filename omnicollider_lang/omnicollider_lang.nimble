@@ -25,7 +25,7 @@ author        = "Francesco Cameli"
 description   = "omnicollider_lang"
 license       = "MIT"
 
-requires "nim >= 1.4.0"
+requires "nim >= 1.0.0"
 requires "omni >= 0.2.2"
 
 installDirs = @["omnicollider_lang"]
