@@ -28,6 +28,7 @@ when defined(multithreadBuffers):
 {.compile: "omnicollider_buffer.cpp".}
 
 #Flags to cpp compiler
+{.localPassc: "-O3".}
 {.passC: "-O3".}
 
 #Wrapping of cpp functions

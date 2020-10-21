@@ -63,7 +63,7 @@ proc printDone(msg : string) : void =
 proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
 
     #Check if file exists
-    if not fileFullPath.existsFile():
+    if not fileFullPath.fileExists():
         printError($fileFullPath & " does not exist.")
         return 1
     
@@ -87,14 +87,14 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     let expanded_sc_path = scPath.normalizedPath().expandTilde().absolutePath()
 
     #Check scPath
-    if not expanded_sc_path.existsDir():
+    if not expanded_sc_path.dirExists():
         printError("scPath: " & $expanded_sc_path & " does not exist.")
         return 1
     
     let expanded_out_dir = outDir.normalizedPath().expandTilde().absolutePath()
 
     #Check outDir
-    if not expanded_out_dir.existsDir():
+    if not expanded_out_dir.dirExists():
         printError("outDir: " & $expanded_out_dir & " does not exist.")
         return 1
 
@@ -389,12 +389,12 @@ proc omnicollider(omniFiles : seq[string], supernova : bool = true, architecture
         let omniFileFullPath = omniFile.normalizedPath().expandTilde().absolutePath()
 
         #If it's a file, compile it
-        if omniFileFullPath.existsFile():
+        if omniFileFullPath.fileExists():
             if omnicollider_single_file(omniFileFullPath, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
                 return 1
 
         #If it's a dir, compile all .omni/.oi files in it
-        elif omniFileFullPath.existsDir():
+        elif omniFileFullPath.dirExists():
             for kind, dirFile in walkDir(omniFileFullPath):
                 if kind == pcFile:
                     let 
