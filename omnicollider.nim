@@ -383,8 +383,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
     return 0
 
-proc omnicollider(omniFiles : seq[string], supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
-    for omniFile in omniFiles:
+proc omnicollider(files : seq[string], supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+    for omniFile in files:
         #Get full extended path
         let omniFileFullPath = omniFile.normalizedPath().expandTilde().absolutePath()
 
@@ -408,12 +408,21 @@ proc omnicollider(omniFiles : seq[string], supernova : bool = true, architecture
         else:
             printError($omniFileFullPath & " does not exist.")
             return 1
+
+    #no files provided
+    if files.len == 0:
+        printError("No Omni files to compile provided.")
+        return 1
     
     return 0
+
+#Workaround to pass custom version
+clCfg.version = "OmniCollider - version " & $omnicollider_ver
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(omnicollider, 
     short={
+        "version" : 'v',
         "scPath" : 'p',
         "supernova" : 's'
     }, 
