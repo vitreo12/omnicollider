@@ -417,7 +417,7 @@ proc omnicollider(files : seq[string], supernova : bool = true, architecture : s
     return 0
 
 #Workaround to pass custom version
-clCfg.version = "OmniCollider - version " & $omnicollider_ver
+clCfg.version = "OmniCollider - version " & $omnicollider_ver & "\n(c) 2020 Francesco Cameli "
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(omnicollider, 
