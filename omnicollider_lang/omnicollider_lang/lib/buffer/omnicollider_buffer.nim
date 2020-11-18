@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import omni_lang except Buffer, Buffer_struct_export
-
 #If supernova defined, also pass the supernova flag to cpp
 when defined(multithreadBuffers):
     {.passC: "-D SUPERNOVA".}
@@ -61,8 +59,6 @@ proc Buffer_struct_new_inner*[S : SomeInteger](input_num : S, buffer_interface :
     #Trying to allocate in perform block!
     when ugen_call_type is PerformCall:
         {.fatal: "attempting to allocate memory in the `perform` or `sample` blocks for `struct Buffer`".}
-
-    print "ye"
 
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_struct_inner))))
 
@@ -151,26 +147,16 @@ when defined(multithreadBuffers):
 # GETTER #
 ##########
 
-proc getter* [I : SomeNumber](a : Buffer, i : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+proc getter*(buffer : Buffer, channel : int = 0, index : int = 0, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
     when ugen_call_type is InitCall:
         {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    return float(get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0)))
-
-proc getter*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
-    when ugen_call_type is InitCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    return float(get_float_value_buffer_SC(a.snd_buf, clong(i2), clong(i1)))
+    return float(get_float_value_buffer_SC(buffer.snd_buf, clong(index), clong(channel)))
 
 ##########
 # SETTER #
 ##########
 
-proc setter*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+proc setter*[Y : SomeNumber](buffer : Buffer, channel : int = 0, index : int = 0, x : Y, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
     when ugen_call_type is InitCall:
         {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i), clong(0))
-
-proc setter*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
-    when ugen_call_type is InitCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-    set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i2), clong(i1))
+    set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))

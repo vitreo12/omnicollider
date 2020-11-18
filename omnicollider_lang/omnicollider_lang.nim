@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#Import omni_lang. This will also make it available in omnicollider_buffer for omni.alloc
+#Import / export omni_lang without omni's Buffer interface
 import omni_lang
-export omni_lang
+export omni_lang except Buffer, Buffer_struct_export
 
-#Import SC's Buffer module
+#Import / export SC's Buffer module
 import omnicollider_lang/lib/buffer/omnicollider_buffer
 export omnicollider_buffer
