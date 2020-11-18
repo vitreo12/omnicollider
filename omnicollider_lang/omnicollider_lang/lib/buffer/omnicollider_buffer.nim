@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import omni_lang except Buffer, Buffer_struct_export
+
 #If supernova defined, also pass the supernova flag to cpp
 when defined(multithreadBuffers):
     {.passC: "-D SUPERNOVA".}
@@ -31,42 +33,25 @@ when defined(multithreadBuffers):
 {.localPassc: "-O3".}
 {.passC: "-O3".}
 
-#Wrapping of cpp functions
+proc get_sc_world() : pointer {.importc, cdecl.}
 proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
-
-#To retrieve world
-proc get_sc_world*() : pointer {.importc, cdecl.}
+proc get_float_value_buffer_SC(buf : pointer, index : clong, channel : clong) : cfloat {.importc, cdecl.}
+proc set_float_value_buffer_SC(buf : pointer, value : cfloat, index : clong, channel : clong) : void {.importc, cdecl.}
+proc get_frames_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
+proc get_samples_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
+proc get_channels_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
+proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 
 when defined(multithreadBuffers):
     proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
     proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
-
-proc get_float_value_buffer_SC(buf : pointer, index : clong, channel : clong) : cfloat {.importc, cdecl.}
-
-proc set_float_value_buffer_SC(buf : pointer, value : cfloat, index : clong, channel : clong) : void {.importc, cdecl.}
-
-proc get_frames_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
-
-proc get_samples_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
-
-proc get_channels_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
-
-proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
-
-#proc get_sampledur_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
-
+    
 type
-    Buffer_struct_inner* = object
+    Buffer_struct_inner* = object of Buffer_inherit
         sc_world      : pointer
         snd_buf       : pointer
         bufnum        : float32
         print_invalid : bool
-        input_num*    : int       #need to export it in order to be retrieved with the ins_Nim[buffer.input_num][0] syntax for get_buffer.
-        length*       : int
-        size*         : int
-        chans*        : int
-        samplerate*   : float
-        #sampledur    : float
 
     Buffer* = ptr Buffer_struct_inner
 
@@ -96,11 +81,6 @@ proc Buffer_struct_new_inner*[S : SomeInteger](input_num : S, buffer_interface :
     result.size = 0
     result.chans = 0
     result.samplerate = 0.0
-
-#Register child so that it will be picked up in perform to run get_buffer / unlock_buffer
-proc checkValidity*(obj : Buffer, ugen_auto_buffer : ptr OmniAutoMem) : bool =
-    ugen_auto_buffer.registerChild(cast[pointer](obj))
-    return true
 
 #Called at start of perform. If supernova is active, this will also lock the buffer.
 #HERE THE WHOLE ins_Nim should be passed through, not just fbufnum (which is ins_Nim[buffer.input_num][0]).
@@ -169,108 +149,26 @@ when defined(multithreadBuffers):
 # GETTER #
 ##########
 
-proc get_float_value_buffer* [I : SomeNumber](a : Buffer, i : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+proc getter* [I : SomeNumber](a : Buffer, i : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
     when ugen_call_type is InitCall:
         {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i), clong(0)))
 
-proc get_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
+proc getter*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
     when ugen_call_type is InitCall:
         {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     return float(get_float_value_buffer_SC(a.snd_buf, clong(i2), clong(i1)))
-
-#1 channel
-template `[]`*[I : SomeNumber](a : Buffer, i : I) : untyped {.dirty.} =
-    get_float_value_buffer(a, i, ugen_call_type)
-
-#more than 1 channel (i1 == channel, i2 == index)
-template `[]`*[I1 : SomeNumber, I2 : SomeNumber](a : Buffer, i1 : I1, i2 : I2) : untyped {.dirty.} =
-    get_float_value_buffer(a, i1, i2, ugen_call_type)
-
-#linear interp read (1 channel)
-proc read_inner*[I : SomeNumber](buffer : Buffer, index : I, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
-    when ugen_call_type is InitCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-
-    let buf_len = buffer.length
-    
-    if buf_len <= 0:
-        return 0.0
-        
-    let
-        index_int = int(index)
-        index1 = index_int mod buf_len
-        index2 = (index1 + 1) mod buf_len
-        frac : float = float(index) - float(index_int)
-    
-    return float(linear_interp(frac, get_float_value_buffer(buffer, index1, ugen_call_type), get_float_value_buffer(buffer, index2, ugen_call_type)))
-        
-#linear interp read (more than 1 channel) (i1 == channel, i2 == index)
-proc read_inner*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2, ugen_call_type : typedesc[CallType] = InitCall) : float {.inline.} =
-    when ugen_call_type is InitCall:
-        {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
-
-    let buf_len = buffer.length
-    
-    if buf_len <= 0:
-        return 0.0
-
-    let
-        index_int = int(index)
-        index1 = index_int mod buf_len
-        index2 = (index1 + 1) mod buf_len
-        frac : float = float(index) - float(index_int)
-    
-    return float(linear_interp(frac, get_float_value_buffer(buffer, chan, index1, ugen_call_type), get_float_value_buffer(buffer, chan, index2, ugen_call_type)))
-
-template read*[I : SomeNumber](buffer : Buffer, index : I) : untyped {.dirty.} =
-    read_inner(buffer, index, ugen_call_type)
-
-template read*[I1 : SomeNumber, I2 : SomeNumber](buffer : Buffer, chan : I1, index : I2) : untyped {.dirty.} =
-    read_inner(buffer, chan, index, ugen_call_type)
 
 ##########
 # SETTER #
 ##########
 
-proc set_float_value_buffer*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+proc setter*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
     when ugen_call_type is InitCall:
         {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i), clong(0))
 
-proc set_float_value_buffer*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
+proc setter*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S, ugen_call_type : typedesc[CallType] = InitCall) : void {.inline.} =
     when ugen_call_type is InitCall:
         {.fatal: "`Buffers` can only be accessed in the `perform` / `sample` blocks".}
     set_float_value_buffer_SC(a.snd_buf, cfloat(x), clong(i2), clong(i1))
-
-#1 channel
-template `[]=`*[I : SomeNumber, S : SomeNumber](a : Buffer, i : I, x : S) : untyped {.dirty.} =
-    set_float_value_buffer(a, i, x, ugen_call_type)
-
-#more than 1 channel (i1 == channel, i2 == index)
-template `[]=`*[I1 : SomeNumber, I2 : SomeNumber, S : SomeNumber](a : Buffer, i1 : I1, i2 : I2, x : S) : untyped {.dirty.} =
-    set_float_value_buffer(a, i1, i2, x, ugen_call_type)
-
-#########
-# INFOS #
-#########
-
-#length of each frame in buffer
-proc len*(buffer : Buffer) : int {.inline.} =
-    return buffer.length
-
-#Returns total size (snd_buf->samples)
-#proc size*(buffer : Buffer) : int {.inline.} =
-#    return buffer.size
-
-#Number of channels
-#proc chans*(buffer : Buffer) : int {.inline.} =
-#    return buffer.chans
-
-#Samplerate (float64)
-#proc samplerate*(buffer : Buffer) : float {.inline.} =
-#    return buffer.samplerate
-
-#Sampledur (Float64)
-#[ proc sampledur*(buffer : Buffer) : float {.inline.} =
-    return buffer.sampledur ]#
