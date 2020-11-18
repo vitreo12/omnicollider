@@ -58,9 +58,11 @@ type
     Buffer_struct_export* = Buffer
 
 proc Buffer_struct_new_inner*[S : SomeInteger](input_num : S, buffer_interface : pointer, obj_type : typedesc[Buffer_struct_export], ugen_auto_mem : ptr OmniAutoMem, ugen_call_type : typedesc[CallType] = InitCall) : Buffer {.inline.} =
-    #Trying to allocate in perform block! nonono
+    #Trying to allocate in perform block!
     when ugen_call_type is PerformCall:
         {.fatal: "attempting to allocate memory in the `perform` or `sample` blocks for `struct Buffer`".}
+
+    print "ye"
 
     result = cast[Buffer](omni_alloc(culong(sizeof(Buffer_struct_inner))))
 
