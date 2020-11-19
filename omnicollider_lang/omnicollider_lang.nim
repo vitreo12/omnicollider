@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#Import / export omni_lang without omni's Buffer interface
+#Import / export omni_lang
 import omni_lang
-export omni_lang except Buffer, Buffer_struct_export
+export omni_lang
 
-#Import / export SC's Buffer module
+#Import / export omnicollider's Buffer interface
 import omnicollider_lang/lib/buffer/omnicollider_buffer
 export omnicollider_buffer

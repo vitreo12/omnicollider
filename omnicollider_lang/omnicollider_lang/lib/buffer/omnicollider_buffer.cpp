@@ -172,11 +172,4 @@ extern "C"
         SndBuf* snd_buf = (SndBuf*)buf;
         return snd_buf->samplerate;
     }
-
-    //Sampledur
-    /* double get_sampledur_buffer_SC(void* buf)
-    {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        return snd_buf->sampledur;
-    } */
 }
