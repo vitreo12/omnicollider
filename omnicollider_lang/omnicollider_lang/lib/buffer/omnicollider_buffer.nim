@@ -39,8 +39,6 @@ proc get_frames_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
 proc get_samples_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
 proc get_channels_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
 proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
-
-#Supernova specific
 proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
 proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
@@ -49,90 +47,64 @@ newBufferInterface:
     obj:
         sc_world      : pointer
         snd_buf       : pointer
-        bufnum        : float32
+        bufnum        : float
         print_invalid : bool
 
-    #(buffer : Buffer, input_num : int, buffer_interface : pointer)
+    #(buffer : Buffer, input_num : int, buffer_interface : pointer) : void
     init:
         buffer.sc_world  = get_sc_world()
         buffer.bufnum    = float32(-1e9)
-
-        #1 should be 0, 2 1, 3 2, etc... 32 31
-        buffer.input_num = int(input_num) - int(1)
-        if buffer.input_num < 0:
-            buffer.input_num = 0
-
         buffer.print_invalid = true
 
-    #(buffer : Buffer, input_val : float)
-    lockFromInput:
-        var bufnum = input_val
+    #(buffer : Buffer, inputVal : float) : void
+    getFromInput:
+        var bufnum = inputVal
         if bufnum < 0.0:
             bufnum = 0.0
 
-        #supernova
-        when defined(multithreadBuffers):
-            #If same buffer number, just lock it
-            if buffer.bufnum == bufnum:
-                if isNil(buffer.snd_buf):
-                    buffer.bufnum = float32(-1e9)
-                    buffer.print_invalid = false #stop printing invalid buffer
-                    return false
-                
-                lock_buffer_SC(buffer.snd_buf)
+        #Update buffer pointer only with a new buffer number as input
+        if buffer.bufnum != bufnum:
+            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
+            buffer.bufnum  = bufnum
             
-            #Retrieve and lock the new buffer
-            else:
-                #When supernova defined, get_buffer_SC will also lock the buffer!
-                buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
-                buffer.bufnum  = bufnum
-
-                if isNil(buffer.snd_buf):
-                    buffer.bufnum = float32(-1e9)
-                    buffer.print_invalid = false #stop printing invalid buffer
-                    return false
-                
-                buffer.print_invalid = true #next time an invalid buffer is provided, print it out
-                buffer.length     = int(get_frames_buffer_SC(buffer.snd_buf))
-                buffer.size       = int(get_samples_buffer_SC(buffer.snd_buf))
-                buffer.chans      = int(get_channels_buffer_SC(buffer.snd_buf))
+            if not isNil(buffer.snd_buf):
+                buffer.length = int(get_frames_buffer_SC(buffer.snd_buf))
                 buffer.samplerate = float(get_samplerate_buffer_SC(buffer.snd_buf))
-        
-        #scsynth
-        else:
-            #Update buffer pointer only with a new buffer number as input
-            if buffer.bufnum != bufnum:
-                buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
-                buffer.bufnum  = bufnum
-                
-                if not isNil(buffer.snd_buf):
-                    buffer.print_invalid = true #next time an invalid buffer is provided, print it out
-                    buffer.length     = int(get_frames_buffer_SC(buffer.snd_buf))
-                    buffer.size       = int(get_samples_buffer_SC(buffer.snd_buf))
-                    buffer.chans      = int(get_channels_buffer_SC(buffer.snd_buf))
-                    buffer.samplerate = float(get_samplerate_buffer_SC(buffer.snd_buf))
+                buffer.channels = int(get_channels_buffer_SC(buffer.snd_buf))
+                buffer.valid = true
+                buffer.print_invalid = true #next time an invalid buffer is provided, print it out
 
-            #If isNil, also reset the bufnum
-            if isNil(buffer.snd_buf):
-                buffer.bufnum = float32(-1e9)
-                buffer.print_invalid = false #stop printing invalid buffer
-                return false
-        
-        return true
+        #If isNil, also reset the bufnum
+        if isNil(buffer.snd_buf):
+            buffer.bufnum = float(-1e9)
+            buffer.print_invalid = false #stop printing invalid buffer
+            buffer.valid = false
     
-    #(buffer : Buffer, param : string)
-    lockFromParam:
-        return true
+    #(buffer : Buffer, paramVal : cstring) : void
+    getFromParam:
+        discard
+
+    lock:
+        lock_buffer_SC(buffer.snd_buf)
     
-    #(buffer : Buffer)
     unlock:
-        if not isNil(buffer.snd_buf):
-            unlock_buffer_SC(buffer.snd_buf)
+        unlock_buffer_SC(buffer.snd_buf)
 
-    #(buffer : Buffer, channel : int, index : int)
+    #[
+    length:
+        int(get_frames_buffer_SC(buffer.snd_buf))
+
+    samplerate:
+        float(get_samplerate_buffer_SC(buffer.snd_buf))
+
+    channels:
+        int(get_channels_buffer_SC(buffer.snd_buf))
+    ]#
+
+    #(buffer : Buffer, channel : int, index : int) : float
     getter:
         return float(get_float_value_buffer_SC(buffer.snd_buf, clong(index), clong(channel)))
 
-    #(buffer : Buffer, x : T, channel : int, index : int)
+    #(buffer : Buffer, x : T, channel : int, index : int) : void
     setter:
         set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))

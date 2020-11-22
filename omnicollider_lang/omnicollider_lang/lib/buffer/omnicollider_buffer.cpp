@@ -71,11 +71,6 @@ extern "C"
                 return nullptr;
             }
 
-            //If supernova, lock buffer aswell
-            #ifdef SUPERNOVA
-            ACQUIRE_SNDBUF_SHARED(buf);
-            #endif
-
             return (void*)buf;
         }
         else
@@ -87,21 +82,27 @@ extern "C"
         }
     }
 
-    #ifdef SUPERNOVA
     void lock_buffer_SC(void* buf)
     {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        ACQUIRE_SNDBUF_SHARED(snd_buf);
-        return;
+        #ifdef SUPERNOVA
+        if(buf)
+        {
+            SndBuf* snd_buf = (SndBuf*)buf;
+            ACQUIRE_SNDBUF_SHARED(snd_buf);
+        }
+        #endif
     }
 
     void unlock_buffer_SC(void* buf)
     {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        RELEASE_SNDBUF_SHARED(snd_buf);
-        return;
+        #ifdef SUPERNOVA
+        if(buf)
+        {
+            SndBuf* snd_buf = (SndBuf*)buf;
+            RELEASE_SNDBUF_SHARED(snd_buf);
+        }
+        #endif
     }
-    #endif
 
     /* 
         For all these function, the validity of void* buf has already been tested at the start of the perform function!
