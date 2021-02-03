@@ -20,14 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#Import / export omni_lang. omni_params_inner will be overwritten
-import omni_lang except omni_params_inner
-export omni_lang except omni_params_inner
+import macros
 
-#Import / export omnicollider's params interface
-import omnicollider_lang/lib/params/omnicollider_params
-export omnicollider_params
+#[ #override params handling in init
+template omni_unpack_params_init(): untyped {.dirty.} =
+    discard
 
-#Import / export omnicollider's buffers interface
-import omnicollider_lang/lib/buffers/omnicollider_buffer
-export omnicollider_buffer
+#override params handling in perform
+template omni_unpack_params_perform(): untyped {.dirty.} =
+    discard ]#
+
+macro omnicollider_generate_params_interface*(params_number : typed, params_names : untyped) : untyped =
+    error astGenRepr params_names
+
+#Run omni's inner param + omnicollider's
+macro omni_params_inner*(params_number : typed, params_names : untyped) : untyped =
+    error "mhmh"
+    #return quote do:
+    #    omnicollider_generate_params_interface()
+        #omni_io.omni_params_inner(`params_number`, `params_names`)
