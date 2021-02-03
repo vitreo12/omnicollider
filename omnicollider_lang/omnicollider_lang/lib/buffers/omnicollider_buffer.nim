@@ -43,7 +43,7 @@ proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
 proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
 #newBufferInterface takes care of omni_lang export (excluding standard Buffer's implementation)
-newBufferInterface:
+#[ newBufferInterface:
     obj:
         sc_world      : pointer
         snd_buf       : pointer
@@ -107,4 +107,4 @@ newBufferInterface:
 
     #(buffer : Buffer, x : T, channel : int, index : int) : void
     setter:
-        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))
+        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel)) ]#
