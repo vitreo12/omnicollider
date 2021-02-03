@@ -133,7 +133,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # ================= #
 
     #Compile omni file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni \"" & $fileFullPath & "\" -a:" & $architecture & " -i:omnicollider_lang -l:static -b:32 -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --importModule:omnicollider_lang --lib:static --performBits:32 --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path... go figure!
     when not defined(Windows):
@@ -150,7 +150,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -a:" & $architecture & " -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -b:32 -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --outName:lib" & $omniFileName & "_supernova --importModule:omnicollider_lang --lib:static --performBits:32 -d:omni_multithread_buffers -o:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when not defined(Windows):
@@ -169,12 +169,12 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # ================ #
     
     let 
-        fullPathToIOFile = fullPathToNewFolder & "/IO.txt"
+        fullPathToIOFile = fullPathToNewFolder & "/omni_io.txt"
         io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
     if io_file_seq.len != 5:
-        printError("Invalid IO.txt file.")
+        printError("Invalid omni_io.txt file.")
         removeDir(fullPathToNewFolder)
         return 1
     
