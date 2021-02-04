@@ -1,6 +1,3 @@
-import omni_lang
-import ../omnicollider_lang
-
 omni_debug_macros:
     ins 4
     

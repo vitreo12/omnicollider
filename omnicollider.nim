@@ -416,6 +416,6 @@ dispatch(omnicollider,
         "architecture" : "Build architecture.",
         "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\".",
         "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
-        "removeBuildFiles" : "Remove source files used for compilation from outDir."        
+        "removeBuildFiles" : "Remove all source files used for compilation from outDir."        
     }
 )

@@ -22,14 +22,16 @@
 
 import macros
 
-# omni_init_buffer()
-
-# omni_lock_buffer()
-
-# omni_unlock_buffer()
+# get buffer and set bufnum value
+# omni_unpack_buffers_perform()
+#   let buf1 = omni_ugen.buf1_omni_buffer
+#   buf1.fbufnum = omni_ins_ptr[3][0]
 
 # same as normal, but with no access to omni_buffers_lock
 # omni_lock_buffers()
 
-template omni_buffers_post_hook*() : untyped =
+macro omnicollider_buffers*(omni_inputs : typed, omni_buffers : typed, omni_buffers_names : typed) : untyped =
     discard
+
+template omni_buffers_post_hook*() : untyped =
+    omnicollider_buffers(omni_inputs, omni_buffers, omni_buffers_names)
