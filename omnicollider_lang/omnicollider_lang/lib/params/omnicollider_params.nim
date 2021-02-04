@@ -22,35 +22,79 @@
 
 import macros, strutils
 
-#[ #override params handling in init
-template omni_unpack_params_init(): untyped {.dirty.} =
-    discard
-
-#override params handling in perform
-template omni_unpack_params_perform(): untyped {.dirty.} =
-    discard ]#
-
+#overwrite the omni_unpack_params_init / omni_unpack_params_perform templates!
 macro omnicollider_params*(ins_number : typed, params_number : typed, params_names : typed) : untyped =
     let param_names_val = params_names.getImpl()
     if param_names_val.kind != nnkStrLit:
         error "params: omnicollider can't retrieve params names."    
-    let param_names_seq = param_names_val.strVal().split(',')
-
-    var 
-        new_omni_unpack_params_init = nnkTemplateDef.newTree(
-
-        ) 
-
-        new_omni_unpack_params_perform = nnkTemplateDef.newTree(
-
-        )
     
-    result = nnkStmtList.newTree(
-        new_omni_unpack_params_init,
-        new_omni_unpack_params_perform
-    )
+    let 
+        ins_number_lit    = ins_number.intVal()
+        params_number_lit = params_number.intVal()
+        param_names_seq   = param_names_val.strVal().split(',')
 
-    error astGenRepr result
+    result = nnkStmtList.newTree()
+
+    if params_number_lit > 0:
+        var 
+            new_omni_unpack_params_body = nnkStmtList.newTree(
+                nnkLetSection.newTree()
+            )
+            
+            new_omni_unpack_params_init = nnkTemplateDef.newTree(
+                newIdentNode("omni_unpack_params_init"),
+                newEmptyNode(),
+                newEmptyNode(),
+                nnkFormalParams.newTree(
+                    newIdentNode("untyped")
+                ),
+                nnkPragma.newTree(
+                    newIdentNode("dirty")
+                ),
+                newEmptyNode(),
+                new_omni_unpack_params_body
+            ) 
+
+            new_omni_unpack_params_perform = nnkTemplateDef.newTree(
+                newIdentNode("omni_unpack_params_perform"),
+                newEmptyNode(),
+                newEmptyNode(),
+                nnkFormalParams.newTree(
+                    newIdentNode("untyped")
+                ),
+                nnkPragma.newTree(
+                    newIdentNode("dirty")
+                ),
+                newEmptyNode(),
+                new_omni_unpack_params_body
+            ) 
+        
+        result.add(
+            new_omni_unpack_params_init,
+            new_omni_unpack_params_perform
+        )
+
+        for index, param_name in param_names_seq:
+            let 
+                param_name_ident = newIdentNode(param_name)
+                omni_ins_ptr     = newIdentNode("omni_ins_ptr")
+                omni_ins_index   = int(ins_number_lit + index)
+            
+            let let_stmt_ident_defs = nnkIdentDefs.newTree(
+                param_name_ident,
+                newEmptyNode(),
+                nnkBracketExpr.newTree(
+                    nnkBracketExpr.newTree(
+                        omni_ins_ptr,
+                        newLit(omni_ins_index)
+                    ),
+                    newLit(0)
+                )
+            )
+            
+            new_omni_unpack_params_body[0].add(
+                let_stmt_ident_defs
+            )
 
 #register the omni_params_post_hook call
 template omni_params_post_hook*() : untyped =
