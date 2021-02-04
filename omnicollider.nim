@@ -206,59 +206,30 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         multiNew_string = "^this.multiNew('audio'"
         multiOut_string = ""
 
-    #No input names
-    if input_names[0] == "__NO_PARAM_NAMES__":
-        if num_inputs == 0:
-            multiNew_string.add(");")
-        else:
-            arg_string.add("arg ")
-            multiNew_string.add(",")
-            
-            for i in 1..num_inputs:
-
-                let default_val = input_defaults[(i - 1)]
-                
-                when defined(omni_debug):
-                    arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-                    arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-                else:
-                    arg_rates.add("if(in" & $i & ".class == Buffer, { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-                    arg_rates.add("if(in" & $i & ".rate != 'audio', { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-
-                if i == num_inputs:
-                    arg_string.add("in" & $i & "=(" & $default_val & ");")
-                    multiNew_string.add("in" & $i & ");")
-                    break
-
-                arg_string.add("in" & $i & "=(" & $default_val & "), ")
-                multiNew_string.add("in" & $i & ", ")
-        
-    #input names
+    if num_inputs == 0:
+        multiNew_string.add(");")
     else:
-        if num_inputs == 0:
-            multiNew_string.add(");")
-        else:
-            arg_string.add("arg ")
-            multiNew_string.add(",")
-            for index, input_name in input_names:
+        arg_string.add("arg ")
+        multiNew_string.add(",")
+        for index, input_name in input_names:
 
-                let default_val = input_defaults[index]
+            let default_val = input_defaults[index]
 
-                #This duplication is not good at all. Find a neater way.
-                when defined(omni_debug):
-                    arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                else:
-                    arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+            #This duplication is not good at all. Find a neater way.
+            when defined(omni_debug):
+                arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+            else:
+                arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
-                if index == num_inputs - 1:
-                    arg_string.add($input_name & "=(" & $default_val & ");")
-                    multiNew_string.add($input_name & ");")
-                    break
+            if index == num_inputs - 1:
+                arg_string.add($input_name & "=(" & $default_val & ");")
+                multiNew_string.add($input_name & ");")
+                break
 
-                arg_string.add($input_name & "=(" & $default_val & "), ")
-                multiNew_string.add($input_name & ", ")
+            arg_string.add($input_name & "=(" & $default_val & "), ")
+            multiNew_string.add($input_name & ", ")
 
     #These are the files to overwrite! Need them at every iteration (when compiling multiple files or a folder)
     include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
