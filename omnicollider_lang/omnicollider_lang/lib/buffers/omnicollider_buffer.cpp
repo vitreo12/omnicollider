@@ -29,7 +29,7 @@
 
 extern "C"
 {
-    //Global variable that will live in each Nim module that compiles this "SCBuffer.c" file
+    //Global variable that will live in each Nim module that is compiled together with "omnicollider_buffer.cpp" file, aka "omnicollider_buffer.nim"
     World* SCWorld;
 
     void init_sc_world(void* inWorld)

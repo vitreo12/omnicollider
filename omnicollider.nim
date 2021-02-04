@@ -173,18 +173,28 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
-    if io_file_seq.len != 5:
+    if io_file_seq.len != 11:
         printError("Invalid omni_io.txt file.")
         removeDir(fullPathToNewFolder)
         return 1
     
-    let 
-        num_inputs  = parseInt(io_file_seq[0])
+    var 
+        num_inputs  = parseInt(io_file_seq[0])     
         input_names_string = io_file_seq[1]
         input_names = input_names_string.split(',') #this is a seq now
-        default_vals_string = io_file_seq[2]
-        default_vals = default_vals_string.split(',')
-        num_outputs = parseInt(io_file_seq[3])
+        input_defaults_string = io_file_seq[2]
+        input_defaults = input_defaults_string.split(',')
+        num_params = parseInt(io_file_seq[3])
+        param_names_string = io_file_seq[4]
+        param_names = param_names_string.split(',')
+        param_defaults_string = io_file_seq[5]
+        param_defaults = param_defaults_string.split(',')
+        num_outputs = parseInt(io_file_seq[^2])
+
+    #Merge inputs with params
+    num_inputs += num_params
+    input_names.add(param_names)
+    input_defaults.add(param_defaults)
     
     # ======== #
     # SC I / O #
@@ -206,7 +216,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
             
             for i in 1..num_inputs:
 
-                let default_val = default_vals[(i - 1)]
+                let default_val = input_defaults[(i - 1)]
                 
                 when defined(omni_debug):
                     arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
@@ -232,7 +242,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
             multiNew_string.add(",")
             for index, input_name in input_names:
 
-                let default_val = default_vals[index]
+                let default_val = input_defaults[index]
 
                 #This duplication is not good at all. Find a neater way.
                 when defined(omni_debug):
