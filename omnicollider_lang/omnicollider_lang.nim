@@ -20,10 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#Import / export omni_lang. omni_params_inner will be overwritten
-import omni_lang except omni_params_inner
-export omni_lang except omni_params_inner
-
 #Import / export omnicollider's params interface
 import omnicollider_lang/lib/params/omnicollider_params
 export omnicollider_params
