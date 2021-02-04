@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import macros
+import macros, strutils
 
 #[ #override params handling in init
 template omni_unpack_params_init(): untyped {.dirty.} =
@@ -30,12 +30,28 @@ template omni_unpack_params_init(): untyped {.dirty.} =
 template omni_unpack_params_perform(): untyped {.dirty.} =
     discard ]#
 
-macro omnicollider_generate_params_interface*(params_number : typed, params_names : untyped) : untyped =
-    error astGenRepr params_names
+macro omnicollider_params*(ins_number : typed, params_number : typed, params_names : typed) : untyped =
+    let param_names_val = params_names.getImpl()
+    if param_names_val.kind != nnkStrLit:
+        error "params: omnicollider can't retrieve params names."    
+    let param_names_seq = param_names_val.strVal().split(',')
 
-#Run omni's inner param + omnicollider's
-macro omni_params_inner*(params_number : typed, params_names : untyped) : untyped =
-    error "mhmh"
-    #return quote do:
-    #    omnicollider_generate_params_interface()
-        #omni_io.omni_params_inner(`params_number`, `params_names`)
+    var 
+        new_omni_unpack_params_init = nnkTemplateDef.newTree(
+
+        ) 
+
+        new_omni_unpack_params_perform = nnkTemplateDef.newTree(
+
+        )
+    
+    result = nnkStmtList.newTree(
+        new_omni_unpack_params_init,
+        new_omni_unpack_params_perform
+    )
+
+    error astGenRepr result
+
+#register the omni_params_post_hook call
+template omni_params_post_hook*() : untyped =
+    omnicollider_params(omni_inputs, omni_params, omni_params_names_const)

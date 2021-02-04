@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#If supernova defined, also pass the supernova flag to cpp
-when defined(multithreadBuffers):
+#If omni_multithread_buffers defined, also pass the supernova flag to cpp
+when defined(omni_multithread_buffers):
     {.passC: "-D SUPERNOVA".}
 
-#cpp file to compile together. Should I compile it ahead and use the link pragma on the .o instead?
+#cpp file to compile together.
 {.compile: "omnicollider_buffer.cpp".}
 
 #Flags to cpp compiler

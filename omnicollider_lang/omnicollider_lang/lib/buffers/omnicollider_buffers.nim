@@ -29,5 +29,7 @@ import macros
 # omni_unlock_buffer()
 
 # same as normal, but with no access to omni_buffers_lock
-template omni_lock_buffers(): untyped {.dirty.} =
+# omni_lock_buffers()
+
+template omni_buffers_post_hook*() : untyped =
     discard
