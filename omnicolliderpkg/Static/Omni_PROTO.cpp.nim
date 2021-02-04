@@ -93,6 +93,7 @@ void RTPrint_int_func(int value)
 }
 
 //Wrapper around world->mSampleRate
+/*
 double getSampleRate_func()
 {
     return SCWorld->mSampleRate;
@@ -103,6 +104,7 @@ int getBufLength_func()
 {
     return SCWorld->mBufLength;
 }
+*/
 
 //SC struct
 struct Omni_PROTO : public Unit 
@@ -146,9 +148,9 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
                     (omni_print_debug_func_t*)RTPrint_debug_func,
                     (omni_print_str_func_t*)RTPrint_str_func,
                     (omni_print_float_func_t*)RTPrint_float_func,
-                    (omni_print_int_func_t*)RTPrint_int_func,
-                    (omni_get_samplerate_func_t*)getSampleRate_func,
-                    (omni_get_bufsize_func_t*)getBufLength_func
+                    (omni_print_int_func_t*)RTPrint_int_func
+                    //(omni_get_samplerate_func_t*)getSampleRate_func,
+                    //(omni_get_bufsize_func_t*)getBufLength_func
                 );
             }
 

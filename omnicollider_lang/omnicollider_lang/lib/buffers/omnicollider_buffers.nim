@@ -20,12 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version       = "0.3.0"
-author        = "Francesco Cameli"
-description   = "omnicollider_lang"
-license       = "MIT"
+import macros
 
-requires "nim >= 1.0.0"
-requires "omni >= 0.3.0"
+# omni_init_buffer()
 
-installDirs = @["omnicollider_lang"]
+# omni_lock_buffer()
+
+# omni_unlock_buffer()
+
+# same as normal, but with no access to omni_buffers_lock
+# omni_lock_buffers()
+
+template omni_buffers_post_hook*() : untyped =
+    discard

@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#If supernova defined, also pass the supernova flag to cpp
-when defined(multithreadBuffers):
+#If omni_multithread_buffers defined, also pass the supernova flag to cpp
+when defined(omni_multithread_buffers):
     {.passC: "-D SUPERNOVA".}
 
-#cpp file to compile together. Should I compile it ahead and use the link pragma on the .o instead?
+#cpp file to compile together.
 {.compile: "omnicollider_buffer.cpp".}
 
 #Flags to cpp compiler
@@ -43,7 +43,7 @@ proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
 proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
 #newBufferInterface takes care of omni_lang export (excluding standard Buffer's implementation)
-newBufferInterface:
+#[ newBufferInterface:
     obj:
         sc_world      : pointer
         snd_buf       : pointer
@@ -107,4 +107,4 @@ newBufferInterface:
 
     #(buffer : Buffer, x : T, channel : int, index : int) : void
     setter:
-        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))
+        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel)) ]#
