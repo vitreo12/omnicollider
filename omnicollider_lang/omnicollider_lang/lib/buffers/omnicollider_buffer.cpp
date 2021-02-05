@@ -36,27 +36,6 @@
 
 extern "C"
 {
-    //Global variable that will live in each Nim module that is compiled together with "omnicollider_buffer.cpp" file, aka "omnicollider_buffer.nim"
-    World* SCWorld;
-
-    //This is called in the SC .cpp file at the start
-    void init_sc_world(void* inWorld)
-    {
-        #ifdef OMNI_DEBUG
-        printf("Calling init_world\n");
-        #endif
-
-        if(!inWorld)
-            printf("ERROR: Invalid SCWorld\n");
-
-        SCWorld = (World*)inWorld;
-    }
-
-    void* get_world_SC()
-    {
-        return (void*)SCWorld;
-    }
-
     //Called at start of perform (scsynth)
     void* get_buffer_SC(void* buffer_SCWorld, float fbufnum, int print_invalid)
     {
@@ -109,8 +88,8 @@ extern "C"
     }
 
     /* 
-        For all these function, the validity of void* buf has already been tested in the omni_lock_buffer() function,
-        thanks to 'buffer.valid = false'
+        For all these function, the validity of void* buf has already been 
+        tested in the omni_update_buffer() function, thanks to 'buffer.valid = false'
     */
     float get_float_value_buffer_SC(void* buf, long index, long channel)
     {

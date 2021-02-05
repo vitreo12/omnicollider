@@ -34,7 +34,6 @@ when defined(omni_multithread_buffers) or defined(supernova):
 {.localPassc: "-O3".}
 {.passC: "-O3".}
 
-proc get_world_SC() : pointer {.importc, cdecl.}
 proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
 proc get_float_value_buffer_SC(buf : pointer, index : clong, channel : clong) : cfloat {.importc, cdecl.}
 proc set_float_value_buffer_SC(buf : pointer, value : cfloat, index : clong, channel : clong) : void {.importc, cdecl.}
@@ -55,7 +54,7 @@ omniBufferInterface:
 
     #(buffer_interface : pointer) -> void
     init:
-        buffer.sc_world  = get_world_SC()
+        buffer.sc_world  = buffer_interface #SC's World* is passed in as the buffer_interface argument
         buffer.bufnum    = float32(-1e9)
         buffer.print_invalid = true
 
@@ -71,14 +70,14 @@ omniBufferInterface:
             
             #Update entries only on change of snd_buf
             if not isNil(buffer.snd_buf):
-                buffer.valid = true
+                buffer.valid = true #allows the locking to be executed
                 buffer.print_invalid = true #next time an invalid buffer is provided, print it out
         
         #If not, reset bufnum and set validity to false. This can happen when releasing a Buffer that's in use
         if isNil(buffer.snd_buf):
             buffer.bufnum = float(-1e9)
             buffer.print_invalid = false #stop printing invalid buffer
-            buffer.valid = false
+            buffer.valid = false #blocks any other action: output silence
 
     #(buffer : Buffer) -> bool
     lock:
