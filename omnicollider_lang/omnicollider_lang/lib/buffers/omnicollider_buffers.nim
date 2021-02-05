@@ -20,18 +20,90 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import macros
+import macros, strutils
 
 # get buffer and set bufnum value
 # omni_unpack_buffers_perform()
 #   let buf1 = omni_ugen.buf1_omni_buffer
 #   buf1.fbufnum = omni_ins_ptr[3][0]
+#   omni_update_buffer(buf1)
 
-# same as normal, but with no access to omni_buffers_lock
+# This should be same as normal, but with no access to omni_buffers_lock
 # omni_lock_buffers()
 
-macro omnicollider_buffers*(omni_inputs : typed, omni_buffers : typed, omni_buffers_names : typed) : untyped =
-    discard
+macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_number : typed, omni_buffers_names : typed) : untyped =
+    let buffers_names_val = omni_buffers_names.getImpl()
+    if buffers_names_val.kind != nnkStrLit:
+        error "params: omnicollider can't retrieve params names."    
+    
+    let 
+        ins_number_lit     = ins_number.intVal()
+        params_number_lit  = params_number.intVal()
+        buffers_number_lit = buffers_number.intVal()
+        buffers_names_seq  = buffers_names_val.strVal().split(',')
+
+    result = nnkStmtList.newTree()
+
+    if buffers_number_lit > 0:  
+        var 
+            perform_block = nnkStmtList.newTree()
+            omni_unpack_buffers_perform = nnkTemplateDef.newTree(
+                newIdentNode("omni_unpack_buffers_perform"),
+                newEmptyNode(),
+                newEmptyNode(),
+                nnkFormalParams.newTree(
+                    newIdentNode("untyped")
+                ),
+                nnkPragma.newTree(
+                    newIdentNode("dirty")
+                ),
+                newEmptyNode(),
+                perform_block
+            )
+        
+        result.add(
+            omni_unpack_buffers_perform
+        )
+
+        for index, buffer_name in buffers_names_seq:
+            let 
+                buffer_name_ident = newIdentNode(buffer_name)
+                buffer_name_omni_buffer_ident = newIdentNode(buffer_name & "_omni_buffer")
+                omni_ins_ptr     = newIdentNode("omni_ins_ptr")
+                buffer_index     = int(ins_number_lit + params_number_lit + index)
+
+            perform_block.add(
+                nnkLetSection.newTree(
+                    nnkIdentDefs.newTree(
+                        buffer_name_ident,
+                        newEmptyNode(),
+                        nnkDotExpr.newTree(
+                            newIdentNode("omni_ugen"),
+                            buffer_name_omni_buffer_ident
+                        )
+                    )
+                ),
+                nnkAsgn.newTree(
+                    nnkDotExpr.newTree(
+                        buffer_name_ident,
+                        newIdentNode("input_bufnum")
+                    ),
+                    nnkBracketExpr.newTree(
+                        nnkBracketExpr.newTree(
+                            omni_ins_ptr,
+                            newLit(buffer_index)
+                        ),
+                    newLit(0)
+                    )
+                ),
+                nnkCall.newTree(
+                    newIdentNode("omni_update_buffer"),
+                    buffer_name_ident,
+                    newLit("")
+                )
+            )
+
+    #error repr result
 
 template omni_buffers_post_hook*() : untyped =
-    omnicollider_buffers(omni_inputs, omni_buffers, omni_buffers_names)
+    omnicollider_buffers(omni_inputs, omni_params, omni_buffers, omni_buffers_names_const)

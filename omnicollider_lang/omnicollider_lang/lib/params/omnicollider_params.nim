@@ -24,14 +24,14 @@ import macros, strutils
 
 #overwrite the omni_unpack_params_init / omni_unpack_params_perform templates!
 macro omnicollider_params*(ins_number : typed, params_number : typed, params_names : typed) : untyped =
-    let param_names_val = params_names.getImpl()
-    if param_names_val.kind != nnkStrLit:
+    let params_names_val = params_names.getImpl()
+    if params_names_val.kind != nnkStrLit:
         error "params: omnicollider can't retrieve params names."    
     
     let 
         ins_number_lit    = ins_number.intVal()
         params_number_lit = params_number.intVal()
-        param_names_seq   = param_names_val.strVal().split(',')
+        params_names_seq   = params_names_val.strVal().split(',')
 
     result = nnkStmtList.newTree()
 
@@ -74,11 +74,11 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
             new_omni_unpack_params_perform
         )
 
-        for index, param_name in param_names_seq:
+        for index, param_name in params_names_seq:
             let 
                 param_name_ident = newIdentNode(param_name)
                 omni_ins_ptr     = newIdentNode("omni_ins_ptr")
-                omni_ins_index   = int(ins_number_lit + index)
+                param_index      = int(ins_number_lit + index)
             
             let let_stmt_ident_defs = nnkIdentDefs.newTree(
                 param_name_ident,
@@ -86,7 +86,7 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
                 nnkBracketExpr.newTree(
                     nnkBracketExpr.newTree(
                         omni_ins_ptr,
-                        newLit(omni_ins_index)
+                        newLit(param_index)
                     ),
                     newLit(0)
                 )

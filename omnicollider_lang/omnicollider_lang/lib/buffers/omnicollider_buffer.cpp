@@ -27,11 +27,19 @@
 #include "SC_Utilities/SC_World.h"
 #include "SC_Utilities/SC_Unit.h"
 
+//Same as ACQUIRE_SNDBUF_SHARED, but returns false if it doesn't lock.
+//ACQUIRE_SNDBUF_SHARED is better, though, as it allows SUPERNOVA to never have "silence" gaps
+//when 2 threads access same buffer
+#define TRYLOCK_SNDBUF_SHARED(buf) \                                                                                                        \
+    if (!buf->isLocal) \
+        return buf->lock.try_lock_shared();
+
 extern "C"
 {
     //Global variable that will live in each Nim module that is compiled together with "omnicollider_buffer.cpp" file, aka "omnicollider_buffer.nim"
     World* SCWorld;
 
+    //This is called in the SC .cpp file at the start
     void init_sc_world(void* inWorld)
     {
         #ifdef OMNI_DEBUG
@@ -44,7 +52,7 @@ extern "C"
         SCWorld = (World*)inWorld;
     }
 
-    void* get_sc_world()
+    void* get_world_SC()
     {
         return (void*)SCWorld;
     }
@@ -85,30 +93,24 @@ extern "C"
     void lock_buffer_SC(void* buf)
     {
         #ifdef SUPERNOVA
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            ACQUIRE_SNDBUF_SHARED(snd_buf);
-        }
+        //Validity of void* buf has been checked already in nim
+        SndBuf* snd_buf = (SndBuf*)buf;
+        ACQUIRE_SNDBUF_SHARED(snd_buf);
         #endif
     }
 
     void unlock_buffer_SC(void* buf)
     {
         #ifdef SUPERNOVA
-        if(buf)
-        {
-            SndBuf* snd_buf = (SndBuf*)buf;
-            RELEASE_SNDBUF_SHARED(snd_buf);
-        }
+        //Validity of void* buf has been checked already in nim
+        SndBuf* snd_buf = (SndBuf*)buf;
+        RELEASE_SNDBUF_SHARED(snd_buf);
         #endif
     }
 
     /* 
-        For all these function, the validity of void* buf has already been tested at the start of the perform function!
-        
-        if isNil(buffer.snd_buf):
-            return false
+        For all these function, the validity of void* buf has already been tested in the omni_lock_buffer() function,
+        thanks to 'buffer.valid = false'
     */
     float get_float_value_buffer_SC(void* buf, long index, long channel)
     {
@@ -151,13 +153,6 @@ extern "C"
     {
         SndBuf* snd_buf = (SndBuf*)buf;
         return snd_buf->frames;
-    }
-
-    //Total allocated length
-    int get_samples_buffer_SC(void* buf)
-    {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        return snd_buf->samples;
     }
 
     //Number of channels

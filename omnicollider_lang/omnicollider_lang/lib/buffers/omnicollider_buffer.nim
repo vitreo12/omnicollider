@@ -20,8 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#If omni_multithread_buffers defined, also pass the supernova flag to cpp
-when defined(omni_multithread_buffers):
+#explicit import of omni_wrapper (for omniBufferInterface)
+import omni_lang/core/wrapper/omni_wrapper
+
+#If omni_multithread_buffers or supernova are defined, pass the supernova flag to cpp
+when defined(omni_multithread_buffers) or defined(supernova):
     {.passC: "-D SUPERNOVA".}
 
 #cpp file to compile together.
@@ -31,80 +34,79 @@ when defined(omni_multithread_buffers):
 {.localPassc: "-O3".}
 {.passC: "-O3".}
 
-proc get_sc_world() : pointer {.importc, cdecl.}
+proc get_world_SC() : pointer {.importc, cdecl.}
 proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
 proc get_float_value_buffer_SC(buf : pointer, index : clong, channel : clong) : cfloat {.importc, cdecl.}
 proc set_float_value_buffer_SC(buf : pointer, value : cfloat, index : clong, channel : clong) : void {.importc, cdecl.}
 proc get_frames_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
-proc get_samples_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
 proc get_channels_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
 proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
 proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
-#newBufferInterface takes care of omni_lang export (excluding standard Buffer's implementation)
-#[ newBufferInterface:
-    obj:
+#Declare a new omniBufferInterface for omnicollider
+omniBufferInterface:
+    struct:
         sc_world      : pointer
         snd_buf       : pointer
         bufnum        : float
+        input_bufnum  : float
         print_invalid : bool
 
-    #(buffer : Buffer, input_num : int, buffer_interface : pointer) : void
+    #(buffer_interface : pointer) -> void
     init:
-        buffer.sc_world  = get_sc_world()
+        buffer.sc_world  = get_world_SC()
         buffer.bufnum    = float32(-1e9)
         buffer.print_invalid = true
 
-    #(buffer : Buffer, inputVal : float) : void
-    getFromInput:
-        var bufnum = inputVal
-        if bufnum < 0.0:
-            bufnum = 0.0
+    #(buffer : Buffer, val : cstring) -> void
+    update:
+        #this has been set accordingly in omni_unpack_buffers_perform()
+        let bufnum = buffer.input_bufnum
 
         #Update buffer pointer only with a new buffer number as input
         if buffer.bufnum != bufnum:
             buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
             buffer.bufnum  = bufnum
             
+            #Update entries only on change of snd_buf
             if not isNil(buffer.snd_buf):
-                buffer.length = int(get_frames_buffer_SC(buffer.snd_buf))
-                buffer.samplerate = float(get_samplerate_buffer_SC(buffer.snd_buf))
-                buffer.channels = int(get_channels_buffer_SC(buffer.snd_buf))
                 buffer.valid = true
                 buffer.print_invalid = true #next time an invalid buffer is provided, print it out
-
-        #If isNil, also reset the bufnum
+        
+        #If not, reset bufnum and set validity to false. This can happen when releasing a Buffer that's in use
         if isNil(buffer.snd_buf):
             buffer.bufnum = float(-1e9)
             buffer.print_invalid = false #stop printing invalid buffer
             buffer.valid = false
-    
-    #(buffer : Buffer, paramVal : cstring) : void
-    getFromParam:
-        discard
 
+    #(buffer : Buffer) -> bool
     lock:
-        lock_buffer_SC(buffer.snd_buf)
+        when defined(omni_multithread_buffers) or defined(supernova):
+            lock_buffer_SC(buffer.snd_buf)
+        return true
     
+    #(buffer : Buffer) -> void
     unlock:
-        unlock_buffer_SC(buffer.snd_buf)
+        when defined(omni_multithread_buffers) or defined(supernova):
+            unlock_buffer_SC(buffer.snd_buf)
 
-    #[
+    #(buffer : Buffer) -> int
     length:
-        int(get_frames_buffer_SC(buffer.snd_buf))
+        return get_frames_buffer_SC(buffer.snd_buf)
 
+    #(buffer : Buffer) -> float
     samplerate:
-        float(get_samplerate_buffer_SC(buffer.snd_buf))
+        return get_samplerate_buffer_SC(buffer.snd_buf)
 
+    #(buffer : Buffer) -> int
     channels:
-        int(get_channels_buffer_SC(buffer.snd_buf))
-    ]#
+        return get_channels_buffer_SC(buffer.snd_buf)
 
-    #(buffer : Buffer, channel : int, index : int) : float
+    #(buffer : Buffer, index : SomeInteger, channel : SomeInteger) -> float
     getter:
-        return float(get_float_value_buffer_SC(buffer.snd_buf, clong(index), clong(channel)))
-
-    #(buffer : Buffer, x : T, channel : int, index : int) : void
+        return get_float_value_buffer_SC(buffer.snd_buf, clong(index), clong(channel))
+    
+    #(buffer : Buffer, x : SomeFloat, index : SomeInteger, channel : SomeInteger) -> void
     setter:
-        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel)) ]#
+        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))

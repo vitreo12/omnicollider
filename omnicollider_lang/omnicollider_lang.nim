@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#Import / export omnicollider's params interface
+#Import / export omnicollider's params extensions
 import omnicollider_lang/lib/params/omnicollider_params
 export omnicollider_params
 
-#Import / export omnicollider's buffers interface
+#Import / export omnicollider's buffers extensions
+import omnicollider_lang/lib/buffers/omnicollider_buffers
+export omnicollider_buffers
+
+#Import / export omnicollider's Buffer interface
 import omnicollider_lang/lib/buffers/omnicollider_buffer
 export omnicollider_buffer
