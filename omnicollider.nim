@@ -195,11 +195,17 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         num_outputs = parseInt(io_file_seq[9])
 
     #Merge inputs with buffers and params
-    num_inputs += num_params
-    num_inputs += num_buffers
-    input_names.add(param_names)
-    input_names.add(buffer_names)
-    input_defaults.add(param_defaults)
+
+    #Do this check cause no params == "NIL", don't wanna add that
+    if num_params > 0:
+        num_inputs += num_params
+        input_names.add(param_names)
+        input_defaults.add(param_defaults)
+    
+    #Do this check cause no buffers == "NIL", don't wanna add that
+    if num_buffers > 0:
+        num_inputs += num_buffers
+        input_names.add(buffer_names)
     
     # ======== #
     # SC I / O #
@@ -217,22 +223,27 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         arg_string.add("arg ")
         multiNew_string.add(",")
         for index, input_name in input_names:
-            
+
             var default_val : string
 
-            #ins and params
-            if index < num_inputs - num_buffers:
+            var is_buffer = false
+
+            #ins and params, num_inputs is (num_inputs + num_params + num_buffers)
+            if index < (num_inputs - num_buffers):
                 default_val = input_defaults[index]
-            #buffers, default to 0
+            #buffers default to 0
             else:
+                is_buffer   = true
                 default_val = "0"
 
             #This duplication is not good at all. Find a neater way.
             when defined(omni_debug):
-                arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                if is_buffer:
+                    arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
                 arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
             else:
-                arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                if is_buffer:
+                    arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
                 arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
             if index == num_inputs - 1:
@@ -291,7 +302,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     
     var sc_cmake_cmd : string
     
-    when(not(defined(Windows))):
+    when not defined(Windows):
         if supernova:
             sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         else:
@@ -321,7 +332,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         return 1
 
     #make command
-    when not(defined(Windows)):
+    when not defined(Windows):
         let 
             sc_compilation_cmd = "make"
             #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
