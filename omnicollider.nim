@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import cligen, terminal, os, strutils, osproc
+import cligen, terminal, os, osproc, strutils, sequtils
 
 #Package version is passed as argument when building. It will be constant and set correctly
 const 
@@ -189,11 +189,17 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         param_names = param_names_string.split(',')
         param_defaults_string = io_file_seq[5]
         param_defaults = param_defaults_string.split(',')
-        num_outputs = parseInt(io_file_seq[^2])
+        num_buffers = parseInt(io_file_seq[6])
+        buffer_names_string = io_file_seq[7]
+        buffer_names = buffer_names_string.split(',')
+        num_outputs = parseInt(io_file_seq[9])
 
-    #Merge inputs with params
+    #Merge inputs with buffers and params (buffers come first, in SC fashion)
+    num_inputs += num_buffers
     num_inputs += num_params
-    input_names.add(param_names)
+    buffer_names.add(input_names)
+    buffer_names.add(param_names)
+    input_names = buffer_names
     input_defaults.add(param_defaults)
     
     # ======== #
@@ -212,8 +218,14 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         arg_string.add("arg ")
         multiNew_string.add(",")
         for index, input_name in input_names:
+            
+            var default_val : string
 
-            let default_val = input_defaults[index]
+            #default Buffers to 0, they come first
+            if index < num_buffers:
+                default_val = "0"
+            else:
+                default_val = input_defaults[index]
 
             #This duplication is not good at all. Find a neater way.
             when defined(omni_debug):
