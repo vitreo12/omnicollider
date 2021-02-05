@@ -22,12 +22,6 @@
 
 import macros, strutils
 
-# get buffer and set bufnum value
-# omni_unpack_buffers_perform()
-#   let buf1 = omni_ugen.buf1_omni_buffer
-#   buf1.fbufnum = omni_ins_ptr[3][0]
-#   omni_update_buffer(buf1)
-
 # This should be same as normal, but with no access to omni_buffers_lock
 # omni_lock_buffers()
 

@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import cligen, terminal, os, osproc, strutils, sequtils
+import cligen, terminal, os, osproc, strutils
 
 #Package version is passed as argument when building. It will be constant and set correctly
 const 
@@ -194,12 +194,11 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         buffer_names = buffer_names_string.split(',')
         num_outputs = parseInt(io_file_seq[9])
 
-    #Merge inputs with buffers and params (buffers come first, in SC fashion)
-    num_inputs += num_buffers
+    #Merge inputs with buffers and params
     num_inputs += num_params
-    buffer_names.add(input_names)
-    buffer_names.add(param_names)
-    input_names = buffer_names
+    num_inputs += num_buffers
+    input_names.add(param_names)
+    input_names.add(buffer_names)
     input_defaults.add(param_defaults)
     
     # ======== #
@@ -221,11 +220,12 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
             
             var default_val : string
 
-            #default Buffers to 0, they come first
-            if index < num_buffers:
-                default_val = "0"
-            else:
+            #ins and params
+            if index < num_inputs - num_buffers:
                 default_val = input_defaults[index]
+            #buffers, default to 0
+            else:
+                default_val = "0"
 
             #This duplication is not good at all. Find a neater way.
             when defined(omni_debug):
