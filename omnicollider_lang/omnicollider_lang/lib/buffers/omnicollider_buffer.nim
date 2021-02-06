@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#explicit import of omni_wrapper (for omniBufferInterface)
-import omni_lang/core/wrapper/omni_wrapper
+#Explicit import of omni_wrapper for all things needed to declare new omni structs
+import omni_lang/core/wrapper/omni_wrapper except omni_buffer_interface
 
 #If omni_multithread_buffers or supernova are defined, pass the supernova flag to cpp
 when defined(omni_multithread_buffers) or defined(supernova):
@@ -43,8 +43,10 @@ proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
 proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
 proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
-#Declare a new omniBufferInterface for omnicollider
-omniBufferInterface:
+#The interface has been generated with this command:
+#[ omniBufferInterface:
+    debug: true
+
     struct:
         sc_world      : pointer
         snd_buf       : pointer
@@ -108,4 +110,94 @@ omniBufferInterface:
     
     #(buffer : Buffer, x : SomeFloat, index : SomeInteger, channel : SomeInteger) -> void
     setter:
-        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))
+        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel)) ]#
+
+type 
+    Buffer_omni_struct* = object of Buffer_inherit
+        sc_world*: pointer
+        snd_buf*: pointer
+        bufnum*: float
+        input_bufnum*: float
+        print_invalid*: bool
+
+    Buffer* = ptr Buffer_omni_struct
+    Buffer_omni_struct_ptr* = Buffer
+
+proc Buffer_omni_struct_new*(buffer_interface: pointer; omni_struct_type: typedesc[Buffer_omni_struct_ptr]; omni_auto_mem: Omni_AutoMem; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): Buffer {.inline.} =
+    when omni_call_type is Omni_PerformCall:
+        {.fatal: "Buffer: attempting to allocate memory in the \'perform\' or \'sample\' blocks".}
+    var buffer = cast[Buffer](omni_alloc(culong(sizeof(Buffer_omni_struct))))
+    omni_auto_mem.omni_auto_mem_register_child(buffer)
+    buffer.valid = false
+    buffer.sc_world = buffer_interface
+    buffer.bufnum = float32(-1000000000.0)
+    buffer.print_invalid = true
+    return buffer
+
+proc omni_update_buffer*(buffer: Buffer; val: cstring = ""): void {.inline.} =
+    let bufnum = buffer.input_bufnum
+    if buffer.bufnum != bufnum:
+        buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum),cint(buffer.print_invalid))
+        buffer.bufnum = bufnum
+        if not isNil(buffer.snd_buf):
+            buffer.valid = true
+            buffer.print_invalid = true
+    if isNil(buffer.snd_buf):
+        buffer.bufnum = float(-1000000000.0)
+        buffer.print_invalid = false
+        buffer.valid = false
+
+proc omni_lock_buffer*(buffer: Buffer): bool {.inline.} =
+    when defined(omni_multithread_buffers) or defined(supernova):
+        lock_buffer_SC(buffer.snd_buf)
+    return true
+
+proc omni_unlock_buffer*(buffer: Buffer): void {.inline.} =
+    when defined(omni_multithread_buffers) or defined(supernova):
+        unlock_buffer_SC(buffer.snd_buf)
+
+proc omni_get_length_buffer*(buffer: Buffer): int {.inline.} =
+    return get_frames_buffer_SC(buffer.snd_buf)
+
+proc omni_get_samplerate_buffer*(buffer: Buffer): float {.inline.} =
+    return get_samplerate_buffer_SC(buffer.snd_buf)
+
+proc omni_get_channels_buffer*(buffer: Buffer): int {.inline.} =
+    return get_channels_buffer_SC(buffer.snd_buf)
+
+proc omni_get_value_buffer*(buffer: Buffer; channel: int = 0; index: int = 0; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): float {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
+    return get_float_value_buffer_SC(buffer.snd_buf, clong(index), clong(channel))
+
+proc omni_set_value_buffer*[T: SomeNumber](buffer: Buffer; channel: int = 0; index: int = 0; x: T; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): void {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
+    set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))
+
+proc omni_read_value_buffer*[I: SomeNumber](buffer: Buffer; index: I; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): float {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
+    let buf_len = buffer.omni_get_length_buffer
+    if buf_len <= 0:
+        return 0.0'f64
+    let
+        index_int = int(index)
+        index1: int = index_int mod buf_len
+        index2: int = (index1 + 1) mod buf_len
+        frac: float = float(index) - float(index_int)
+    return linear_interp(frac, buffer.omni_get_value_buffer(0, index1,omni_call_type), buffer.omni_get_value_buffer(0, index2, omni_call_type)))
+
+proc omni_read_value_buffer*[I1: SomeNumber; I2: SomeNumber](buffer: Buffer; chan: I1; index: I2; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): float {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
+    let buf_len = buffer.omni_get_length_buffer
+    if buf_len <= 0:
+        return 0.0'f64
+    let
+        chan_int = int(chan)
+        index_int = int(index)
+        index1: int = index_int mod buf_len
+        index2: int = (index1 + 1) mod buf_len
+        frac: float = float(index) - float(index_int)
+    return linear_interp(frac, buffer.omni_get_value_buffer(chan_int, index1, omni_call_type), buffer.omni_get_value_buffer(chan_int, index2, omni_call_type))
