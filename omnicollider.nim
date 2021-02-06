@@ -226,25 +226,32 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
             var default_val : string
 
-            var is_buffer = false
+            var 
+                is_param  = false
+                is_buffer = false
 
             #ins and params, num_inputs is (num_inputs + num_params + num_buffers)
             if index < (num_inputs - num_buffers):
                 default_val = input_defaults[index]
+
+                if index >= (num_inputs - num_params - num_buffers):
+                    is_param = true
+
             #buffers default to 0
             else:
                 is_buffer   = true
                 default_val = "0"
 
-            #This duplication is not good at all. Find a neater way.
             when defined(omni_debug):
-                if is_buffer:
-                    arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                if is_param or is_buffer:
+                    arg_rates.add("if(" & $input_name & ".rate != 'control', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
+                else:
+                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
             else:
-                if is_buffer:
-                    arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                if is_param or is_buffer:
+                    arg_rates.add("if(" & $input_name & ".rate != 'control', { " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
+                else:
+                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
             if index == num_inputs - 1:
                 arg_string.add($input_name & "=(" & $default_val & ");")

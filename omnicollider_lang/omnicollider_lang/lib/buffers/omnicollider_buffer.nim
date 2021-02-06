@@ -186,7 +186,7 @@ proc omni_read_value_buffer*[I: SomeNumber](buffer: Buffer; index: I; omni_call_
         index1: int = index_int mod buf_len
         index2: int = (index1 + 1) mod buf_len
         frac: float = float(index) - float(index_int)
-    return linear_interp(frac, buffer.omni_get_value_buffer(0, index1,omni_call_type), buffer.omni_get_value_buffer(0, index2, omni_call_type)))
+    return linear_interp(frac, buffer.omni_get_value_buffer(0, index1,omni_call_type), buffer.omni_get_value_buffer(0, index2, omni_call_type))
 
 proc omni_read_value_buffer*[I1: SomeNumber; I2: SomeNumber](buffer: Buffer; chan: I1; index: I2; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): float {.inline.} =
     when omni_call_type is Omni_InitCall:
