@@ -181,7 +181,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     var 
         num_inputs  = parseInt(io_file_seq[0])     
         input_names_string = io_file_seq[1]
-        input_names = input_names_string.split(',') #this is a seq now
+        input_names = input_names_string.split(',')
         input_defaults_string = io_file_seq[2]
         input_defaults = input_defaults_string.split(',')
         num_params = parseInt(io_file_seq[3])
