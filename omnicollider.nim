@@ -249,7 +249,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                     arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
             else:
                 if is_param or is_buffer:
-                    arg_rates.add("if(" & $input_name & ".rate != 'control', { " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
+                    #keep the debug version for param and buffer. It's better to know when doing things wrong!
+                    arg_rates.add("if(" & $input_name & ".rate != 'control', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
                 else:
                     arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
