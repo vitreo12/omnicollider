@@ -242,17 +242,10 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                 is_buffer   = true
                 default_val = "0"
 
-            when defined(omni_debug):
-                if is_param or is_buffer:
-                    arg_rates.add("if(" & $input_name & ".rate == 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
-                else:
-                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+            if is_param or is_buffer:
+                arg_rates.add("if(" & $input_name & ".rate == 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
             else:
-                if is_param or is_buffer:
-                    #keep the debug version for param and buffer. It's better to know when doing things wrong!
-                    arg_rates.add("if(" & $input_name & ".rate == 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
-                else:
-                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
             if index == num_inputs - 1:
                 arg_string.add($input_name & "=(" & $default_val & ");")
