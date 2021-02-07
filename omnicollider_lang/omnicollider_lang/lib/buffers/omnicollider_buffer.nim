@@ -156,13 +156,19 @@ proc omni_unlock_buffer*(buffer: Buffer): void {.inline.} =
     when defined(omni_multithread_buffers) or defined(supernova):
         unlock_buffer_SC(buffer.snd_buf)
 
-proc omni_get_length_buffer*(buffer: Buffer): int {.inline.} =
+proc omni_get_length_buffer*(buffer: Buffer, omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): int {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
     return get_frames_buffer_SC(buffer.snd_buf)
 
-proc omni_get_samplerate_buffer*(buffer: Buffer): float {.inline.} =
+proc omni_get_samplerate_buffer*(buffer: Buffer, omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): float {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
     return get_samplerate_buffer_SC(buffer.snd_buf)
 
-proc omni_get_channels_buffer*(buffer: Buffer): int {.inline.} =
+proc omni_get_channels_buffer*(buffer: Buffer, omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): int {.inline.} =
+    when omni_call_type is Omni_InitCall:
+        {.fatal: "\'Buffers\' can only be accessed in the \'perform\' / \'sample\' blocks".}
     return get_channels_buffer_SC(buffer.snd_buf)
 
 proc omni_get_value_buffer*(buffer: Buffer; channel: int = 0; index: int = 0; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): float {.inline.} =
