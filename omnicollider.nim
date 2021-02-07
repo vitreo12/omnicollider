@@ -20,7 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import cligen, terminal, os, osproc, strutils
+import cligen, terminal, os, strutils
+
+when not defined(Windows):
+    import osproc
 
 #Package version is passed as argument when building. It will be constant and set correctly
 const 
