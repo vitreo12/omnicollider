@@ -83,12 +83,15 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
             let let_stmt_ident_defs = nnkIdentDefs.newTree(
                 param_name_ident,
                 newEmptyNode(),
-                nnkBracketExpr.newTree(
+                nnkCall.newTree(
+                    newIdentNode("omni_param_" & param_name & "_min_max"),
                     nnkBracketExpr.newTree(
-                        omni_ins_ptr,
-                        newLit(param_index)
-                    ),
-                    newLit(0)
+                        nnkBracketExpr.newTree(
+                            omni_ins_ptr,
+                            newLit(param_index)
+                        ),
+                        newLit(0)
+                    )
                 )
             )
             
