@@ -22,9 +22,6 @@
 
 import macros, strutils
 
-# This should be same as normal, but with no access to omni_buffers_lock
-# omni_lock_buffers()
-
 macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_number : typed, omni_buffers_names : typed) : untyped =
     let buffers_names_val = omni_buffers_names.getImpl()
     if buffers_names_val.kind != nnkStrLit:

@@ -23,8 +23,8 @@
 #Explicit import of omni_wrapper for all things needed to declare new omni structs
 import omni_lang/core/wrapper/omni_wrapper except omni_buffer_interface
 
-#If omni_multithread_buffers or supernova are defined, pass the supernova flag to cpp
-when defined(omni_multithread_buffers) or defined(supernova):
+#If supernova flag is defined, pass it to cpp too
+when defined(supernova):
     {.passC: "-D SUPERNOVA".}
 
 #cpp file to compile together.
@@ -83,13 +83,13 @@ proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
     #(buffer : Buffer) -> bool
     lock:
-        when defined(omni_multithread_buffers) or defined(supernova):
+        when defined(supernova):
             lock_buffer_SC(buffer.snd_buf)
         return true
     
     #(buffer : Buffer) -> void
     unlock:
-        when defined(omni_multithread_buffers) or defined(supernova):
+        when defined(supernova):
             unlock_buffer_SC(buffer.snd_buf)
 
     #(buffer : Buffer) -> int
@@ -148,12 +148,12 @@ proc omni_update_buffer*(buffer: Buffer; val: cstring = ""): void {.inline.} =
         buffer.valid = false
 
 proc omni_lock_buffer*(buffer: Buffer): bool {.inline.} =
-    when defined(omni_multithread_buffers) or defined(supernova):
+    when defined(supernova):
         lock_buffer_SC(buffer.snd_buf)
     return true
 
 proc omni_unlock_buffer*(buffer: Buffer): void {.inline.} =
-    when defined(omni_multithread_buffers) or defined(supernova):
+    when defined(supernova):
         unlock_buffer_SC(buffer.snd_buf)
 
 proc omni_get_length_buffer*(buffer: Buffer, omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): int {.inline.} =
