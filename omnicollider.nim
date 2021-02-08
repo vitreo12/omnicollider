@@ -36,23 +36,26 @@ let version_flag = "OmniCollider - version " & $omnicollider_ver & "\n(c) 2020 F
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
 const default_sc_path = "~/.nimble/pkgs/omnicollider-" & omnicollider_ver & "/omnicolliderpkg/deps/supercollider"
 
-#Extension for static lib
-const static_lib_extension = ".a"
-
 when defined(Linux):
     const
         default_extensions_path = "~/.local/share/SuperCollider/Extensions"
-        ugen_extension = ".so"
+        ugen_extension          = ".so"
+        lib_prepend             = "lib"
+        static_lib_extension    = ".a"
 
 when defined(MacOSX) or defined(MacOS):
     const 
         default_extensions_path = "~/Library/Application Support/SuperCollider/Extensions"
-        ugen_extension = ".scx"
+        ugen_extension          = ".scx"
+        lib_prepend            = "lib"
+        static_lib_extension   = ".a"
 
 when defined(Windows):
     const 
         default_extensions_path = "~\\AppData\\Local\\SuperCollider\\Extensions"
-        ugen_extension = ".scx"
+        ugen_extension          = ".scx"
+        lib_prepend             = ""
+        static_lib_extension    = ".lib"
 
 proc printError(msg : string) : void =
     setForegroundColor(fgRed)
@@ -121,8 +124,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         fullPathToCMakeFile = $fullPathToNewFolder & "/" & "CMakeLists.txt"
 
         #These are the paths to the generated static libraries
-        fullPathToStaticLib = $fullPathToNewFolder & "/lib" & $omniFileName & $static_lib_extension
-        fullPathToStaticLib_supernova = $fullPathToNewFolder & "/lib" & $omniFileName & "_supernova" & $static_lib_extension
+        fullPathToStaticLib = $fullPathToNewFolder & "/" & $lib_prepend & $omniFileName & $static_lib_extension
+        fullPathToStaticLib_supernova = $fullPathToNewFolder & "/" & $lib_prepend & $omniFileName & "_supernova" & $static_lib_extension
     
     #Create directory in same folder as .omni file
     removeDir(fullPathToNewFolder)
@@ -153,7 +156,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --outName:lib" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_multithread_buffers --outDir:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_multithread_buffers --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when defined(Windows):
