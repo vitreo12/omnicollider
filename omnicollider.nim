@@ -218,10 +218,16 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # ======== #
     
     var 
+        #SC
         arg_string = ""
         arg_rates = ""
         multiNew_string = "^this.multiNew('audio'"
         multiOut_string = ""
+
+        #CPP
+        NUM_PARAMS_CPP = "#define NUM_PARAMS " & $num_params
+        PARAMS_INDICES_CPP = "const std::array<int," & $num_params & "> param_indices = { "
+        PARAMS_NAMES_CPP = "const std::array<std::string," & $num_params & "> param_names = { "
 
     if num_inputs == 0:
         multiNew_string.add(");")
@@ -229,10 +235,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         arg_string.add("arg ")
         multiNew_string.add(",")
         for index, input_name in input_names:
-
-            var default_val : string
-
             var 
+                default_val : string
                 is_param  = false
                 is_buffer = false
 
@@ -241,6 +245,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
                 default_val = input_defaults[index]
 
                 if index >= (num_inputs - num_params - num_buffers):
+                    PARAMS_INDICES_CPP.add($index & ",")
+                    PARAMS_NAMES_CPP.add("\"" & $input_name & "\",")
                     is_param = true
 
             #buffers default to 0
@@ -260,6 +266,11 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
             arg_string.add($input_name & "=(" & $default_val & "), ")
             multiNew_string.add($input_name & ", ")
+                
+    PARAMS_INDICES_CPP.removeSuffix(',')
+    PARAMS_NAMES_CPP.removeSuffix(',')
+    PARAMS_INDICES_CPP.add(" };")
+    PARAMS_NAMES_CPP.add(" };")
 
     #These are the files to overwrite! Need them at every iteration (when compiling multiple files or a folder)
     include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
@@ -280,6 +291,9 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     OMNI_PROTO_CPP   = OMNI_PROTO_CPP.replace("Omni_PROTO", omniFileName)
     OMNI_PROTO_SC    = OMNI_PROTO_SC.replace("Omni_PROTO", omniFileName)
     OMNI_PROTO_CMAKE = OMNI_PROTO_CMAKE.replace("Omni_PROTO", omniFileName)
+
+    #Chain the file together with all correct infos too
+    OMNI_PROTO_CPP = $OMNI_PROTO_INCLUDES & "\n" & $NUM_PARAMS_CPP & "\n" & $PARAMS_INDICES_CPP & "\n" & PARAMS_NAMES_CPP & "\n" & "\n" & $OMNI_PROTO_CPP
     
     # =========== #
     # WRITE FILES #

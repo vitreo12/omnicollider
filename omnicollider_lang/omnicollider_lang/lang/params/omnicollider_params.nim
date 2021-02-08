@@ -20,9 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 import macros, strutils
 
-#overwrite the omni_unpack_params_init / omni_unpack_params_perform templates!
+#overwrite the omni_unpack_params_perform template! 
+#instead of calling SetParam at each cycle from SC's CPP interface, just replace the template and use the inputs directly instead
 macro omnicollider_params*(ins_number : typed, params_number : typed, params_names : typed) : untyped =
     let params_names_val = params_names.getImpl()
     if params_names_val.kind != nnkStrLit:
@@ -40,20 +42,6 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
             new_omni_unpack_params_body = nnkStmtList.newTree(
                 nnkLetSection.newTree()
             )
-            
-            new_omni_unpack_params_init = nnkTemplateDef.newTree(
-                newIdentNode("omni_unpack_params_init"),
-                newEmptyNode(),
-                newEmptyNode(),
-                nnkFormalParams.newTree(
-                    newIdentNode("untyped")
-                ),
-                nnkPragma.newTree(
-                    newIdentNode("dirty")
-                ),
-                newEmptyNode(),
-                new_omni_unpack_params_body
-            ) 
 
             new_omni_unpack_params_perform = nnkTemplateDef.newTree(
                 newIdentNode("omni_unpack_params_perform"),
@@ -70,7 +58,6 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
             ) 
         
         result.add(
-            new_omni_unpack_params_init,
             new_omni_unpack_params_perform
         )
 

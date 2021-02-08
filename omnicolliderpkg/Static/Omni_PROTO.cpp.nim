@@ -20,11 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-var OMNI_PROTO_CPP = """
+var OMNI_PROTO_INCLUDES = """
 #include <atomic>
+#include <array>
+#include <string>
 #include "SC_PlugIn.h"
 #include "omni.h"
+"""
 
+var OMNI_PROTO_CPP = """
 #define NAME "Omni_PROTO"
 
 #if defined(__APPLE__) || defined(_WIN32)
@@ -114,7 +118,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
                 //Set SCWorld pointer used in the RT functions
                 SCWorld = unit->mWorld;
                 
-                //Init omni with all the function pointers
+                //Init omni with all the correct function pointers
                 Omni_InitGlobal(
                     (omni_alloc_func_t*)RTAlloc_func, 
                     (omni_realloc_func_t*)RTRealloc_func, 
@@ -134,20 +138,28 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         init_global_lock.clear(std::memory_order_release); 
     }
 
-    if(&Omni_UGenAllocInit32 && &Omni_InitGlobal)
+    //Alloc
+    unit->omni_ugen = Omni_UGenAlloc();
+
+    //Set input values for params
+    for(int i = 0; i < NUM_PARAMS; i++)
     {
-        unit->omni_ugen = Omni_UGenAllocInit32(
-            unit->mInBuf, 
-            unit->mWorld->mBufLength, 
-            unit->mWorld->mSampleRate, 
-            (void*)unit->mWorld
-        );
+        int param_index = param_indices[i];
+        float in_val = unit->mInBuf[param_index][0];
+        const char* param_name = param_names[i].c_str();
+        Omni_UGenSetParam(unit->omni_ugen, param_name, in_val);
     }
-    else
-    {
-        Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
+    
+    //Initialize
+    int omni_initialized = Omni_UGenInit(
+        unit->omni_ugen,
+        unit->mWorld->mBufLength, 
+        unit->mWorld->mSampleRate, 
+        (void*)unit->mWorld
+    );
+
+    if(!omni_initialized)
         unit->omni_ugen = nullptr;
-    }
         
     if(unit->omni_ugen)
     {

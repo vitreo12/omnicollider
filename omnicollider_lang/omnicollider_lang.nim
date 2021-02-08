@@ -21,13 +21,13 @@
 # SOFTWARE.
 
 #Import / export omnicollider's params extensions
-import omnicollider_lang/lib/params/omnicollider_params
+import omnicollider_lang/lang/params/omnicollider_params
 export omnicollider_params
 
 #Import / export omnicollider's buffers extensions
-import omnicollider_lang/lib/buffers/omnicollider_buffers
+import omnicollider_lang/lang/buffers/omnicollider_buffers
 export omnicollider_buffers
 
 #Import / export omnicollider's Buffer interface
-import omnicollider_lang/lib/buffers/omnicollider_buffer
+import omnicollider_lang/lib/buffer/omnicollider_buffer
 export omnicollider_buffer
