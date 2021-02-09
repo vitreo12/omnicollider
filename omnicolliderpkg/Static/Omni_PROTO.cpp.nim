@@ -151,7 +151,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
     }
     
     //Initialize
-    int omni_initialized = Omni_UGenInit(
+    bool omni_initialized = Omni_UGenInit(
         unit->omni_ugen,
         unit->mWorld->mBufLength, 
         unit->mWorld->mSampleRate, 
