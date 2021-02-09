@@ -62,29 +62,26 @@ proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
 
     #(buffer : Buffer, val : cstring) -> void
     update:
-        #this has been set accordingly in omni_unpack_buffers_perform()
-        let bufnum = buffer.input_bufnum
-
-        #Update buffer pointer only with a new buffer number as input
-        if buffer.bufnum != bufnum:
-            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
-            buffer.bufnum  = bufnum
-            
-            #Update entries only on change of snd_buf
-            if not isNil(buffer.snd_buf):
-                buffer.valid = true #allows the locking to be executed
-                buffer.print_invalid = true #next time an invalid buffer is provided, print it out
-        
-        #If not, reset bufnum and set validity to false. This can happen when releasing a Buffer that's in use
-        if isNil(buffer.snd_buf):
-            buffer.bufnum = float(-1e9)
-            buffer.print_invalid = false #stop printing invalid buffer
-            buffer.valid = false #blocks any other action: output silence
+        discard
 
     #(buffer : Buffer) -> bool
     lock:
+        let bufnum = buffer.input_bufnum
+        if buffer.bufnum != bufnum:
+            buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum),cint(buffer.print_invalid))
+            buffer.bufnum = bufnum
+            if not isNil(buffer.snd_buf):
+                buffer.print_invalid = true
+                return false
+
+        if isNil(buffer.snd_buf):
+            buffer.bufnum = float(-1000000000.0)
+            buffer.print_invalid = false
+            return false
+
         when defined(supernova):
             lock_buffer_SC(buffer.snd_buf)
+
         return true
     
     #(buffer : Buffer) -> void
@@ -123,31 +120,34 @@ type
     Buffer* = ptr Buffer_omni_struct
     Buffer_omni_struct_ptr* = Buffer
 
-proc Buffer_omni_struct_new*(buffer_interface: pointer; omni_struct_type: typedesc[Buffer_omni_struct_ptr]; omni_auto_mem: Omni_AutoMem; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): Buffer {.inline.} =
+proc Buffer_omni_struct_new*(buffer_name: string; buffer_interface: pointer; omni_struct_type: typedesc[Buffer_omni_struct_ptr]; omni_auto_mem: Omni_AutoMem; omni_call_type: typedesc[Omni_CallType] = Omni_InitCall): Buffer {.inline.} =
     when omni_call_type is Omni_PerformCall:
         {.fatal: "Buffer: attempting to allocate memory in the \'perform\' or \'sample\' blocks".}
     var buffer = cast[Buffer](omni_alloc(culong(sizeof(Buffer_omni_struct))))
     omni_auto_mem.omni_auto_mem_register_child(buffer)
     buffer.valid = false
+    buffer.name = buffer_name
     buffer.sc_world = buffer_interface
     buffer.bufnum = float32(-1000000000.0)
     buffer.print_invalid = true
+    buffer.init  = true
     return buffer
 
 proc omni_update_buffer*(buffer: Buffer; val: cstring = ""): void {.inline.} =
+    discard
+
+proc omni_lock_buffer*(buffer: Buffer): bool {.inline.} =
     let bufnum = buffer.input_bufnum
     if buffer.bufnum != bufnum:
         buffer.snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum),cint(buffer.print_invalid))
         buffer.bufnum = bufnum
         if not isNil(buffer.snd_buf):
-            buffer.valid = true
             buffer.print_invalid = true
+            return false
     if isNil(buffer.snd_buf):
         buffer.bufnum = float(-1000000000.0)
         buffer.print_invalid = false
-        buffer.valid = false
-
-proc omni_lock_buffer*(buffer: Buffer): bool {.inline.} =
+        return false
     when defined(supernova):
         lock_buffer_SC(buffer.snd_buf)
     return true
