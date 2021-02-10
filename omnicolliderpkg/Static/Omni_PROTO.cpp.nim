@@ -87,6 +87,77 @@ void RTPrint_int_func(int value)
     ft->fPrint("%d\n", value);
 }
 
+/*********************************/
+/* omnicollider buffer interface */
+/*********************************/
+extern "C"
+{
+    void* get_buffer_SC(void* buffer_SCWorld, float fbufnum, int print_invalid)
+    {
+        if(!buffer_SCWorld)
+            return nullptr;
+
+        World* SCWorld = (World*)buffer_SCWorld;
+
+        uint32 bufnum = (int)fbufnum; 
+
+        //If bufnum is not more that maximum number of buffers in World* it means bufnum doesn't point to a LocalBuf
+        if(!(bufnum >= SCWorld->mNumSndBufs))
+        {
+            SndBuf* buf = SCWorld->mSndBufs + bufnum; 
+
+            if(!buf->data)
+            {
+                if(print_invalid)
+                    printf("WARNING: Omni: Invalid buffer at index %d\n", bufnum);
+                return nullptr;
+            }
+
+            return (void*)buf;
+        }
+        else
+        {
+            printf("WARNING: Omni: local buffers are not yet supported \n");
+            return nullptr;
+            //It would require to provide "unit" here (to retrieve parent). Perhaps it can be passed in void* buffer_interface?
+        }
+    }
+
+    void lock_buffer_SC(void* buf)
+    {
+        #ifdef SUPERNOVA
+        SndBuf* snd_buf = (SndBuf*)buf;
+        ACQUIRE_SNDBUF_SHARED(snd_buf);
+        #endif
+    }
+
+    void unlock_buffer_SC(void* buf)
+    {
+        #ifdef SUPERNOVA
+        SndBuf* snd_buf = (SndBuf*)buf;
+        RELEASE_SNDBUF_SHARED(snd_buf);
+        #endif
+    }
+
+    int get_frames_buffer_SC(void* buf)
+    {
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->frames;
+    }
+
+    double get_samplerate_buffer_SC(void* buf)
+    {
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->samplerate;
+    }
+
+    int get_channels_buffer_SC(void* buf)
+    {
+        SndBuf* snd_buf = (SndBuf*)buf;
+        return snd_buf->channels;
+    }
+}
+
 //SC struct
 struct Omni_PROTO : public Unit 
 {
@@ -141,7 +212,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
     //Alloc
     unit->omni_ugen = Omni_UGenAlloc();
 
-    //Set input values for params
+    //Set starting input values for params
     for(int i = 0; i < NUM_PARAMS; i++)
     {
         int param_index = param_indices[i];

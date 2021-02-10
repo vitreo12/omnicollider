@@ -23,33 +23,22 @@
 #Explicit import of omni_wrapper for all things needed to declare new omni structs
 import omni_lang/core/wrapper/omni_wrapper
 
-#If supernova flag is defined, pass it to cpp too
-when defined(supernova):
-    {.passC: "-D SUPERNOVA".}
-
-#cpp file to compile together.
-{.compile: "omnicollider_buffer.cpp".}
-
-#Flags to cpp compiler
-{.localPassc: "-O3".}
-{.passC: "-O3".}
-
-proc get_buffer_SC(buffer_SCWorld : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
-proc get_float_value_buffer_SC(buf : pointer, index : clong, channel : clong) : cfloat {.importc, cdecl.}
-proc set_float_value_buffer_SC(buf : pointer, value : cfloat, index : clong, channel : clong) : void {.importc, cdecl.}
-proc get_frames_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
-proc get_channels_buffer_SC(buf : pointer) : cint {.importc, cdecl.}
-proc get_samplerate_buffer_SC(buf : pointer) : cdouble {.importc, cdecl.}
-proc lock_buffer_SC  (buf : pointer) : void {.importc, cdecl.}
-proc unlock_buffer_SC(buf : pointer) : void {.importc, cdecl.}
+proc get_buffer_SC(sc_world : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
+proc get_buffer_data_SC(snd_buf : pointer) : ptr float32 {.importc, cdecl.}
+proc get_frames_buffer_SC(snd_buf : pointer) : cint {.importc, cdecl.}
+proc get_channels_buffer_SC(snd_buf : pointer) : cint {.importc, cdecl.}
+proc get_samplerate_buffer_SC(snd_buf : pointer) : cdouble {.importc, cdecl.}
+proc lock_buffer_SC  (snd_buf : pointer) : void {.importc, cdecl.}
+proc unlock_buffer_SC(snd_buf : pointer) : void {.importc, cdecl.}
 
 #The interface has been generated with this command:
 omniBufferInterface:
-    debug: true
+    debug: false
 
     struct:
         sc_world      : pointer
         snd_buf       : pointer
+        snd_buf_data  : ptr UncheckedArray[float32]
         bufnum        : float
         input_bufnum  : float
         print_invalid : bool
@@ -88,6 +77,9 @@ omniBufferInterface:
         when defined(supernova):
             lock_buffer_SC(snd_buf)
 
+        #Get data after locking
+        buffer.snd_buf_data = cast[ptr UncheckedArray[float32]](get_buffer_data_SC(snd_buf))
+
         return true
     
     #(buffer : Buffer) -> void
@@ -97,8 +89,30 @@ omniBufferInterface:
 
     #(buffer : Buffer, index : SomeInteger, channel : SomeInteger) -> float
     getter:
-        return get_float_value_buffer_SC(buffer.snd_buf, clong(index), clong(channel))
+        let chans = buffer.channels
+        
+        var actual_index : int
+
+        if chans == 1:
+            actual_index = index
+        else:
+            actual_index = (index * chans) + channel
+        
+        if actual_index >= 0 and actual_index < buffer.size:
+            return buffer.snd_buf_data[actual_index]
+        
+        return 0.0
     
     #(buffer : Buffer, x : SomeFloat, index : SomeInteger, channel : SomeInteger) -> void
     setter:
-        set_float_value_buffer_SC(buffer.snd_buf, cfloat(x), clong(index), clong(channel))
+        let chans = buffer.channels
+        
+        var actual_index : int
+        
+        if chans == 1:
+            actual_index = index
+        else:
+            actual_index = (index * chans) + channel
+        
+        if actual_index >= 0 and actual_index < buffer.size:
+            buffer.snd_buf_data[actual_index] = float32(x)
