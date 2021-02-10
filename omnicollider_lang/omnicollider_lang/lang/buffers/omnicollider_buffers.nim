@@ -60,8 +60,8 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
             let 
                 buffer_name_ident = newIdentNode(buffer_name)
                 buffer_name_omni_buffer_ident = newIdentNode(buffer_name & "_omni_buffer")
-                omni_ins_ptr     = newIdentNode("omni_ins_ptr")
-                buffer_index     = int(ins_number_lit + params_number_lit + index)
+                omni_ins_ptr = newIdentNode("omni_ins_ptr")
+                buffer_index = int(ins_number_lit + params_number_lit + index)
 
             perform_block.add(
                 nnkLetSection.newTree(
