@@ -93,4 +93,3 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
 
 template omni_buffers_post_hook*() : untyped =
     omnicollider_buffers(omni_inputs, omni_params, omni_buffers, omni_buffers_names_const)
-    template omni_set_buffers_defaults() : untyped {.dirty.} = discard
