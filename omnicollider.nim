@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2020 Francesco Cameli
+# Copyright (c) 2020-2021 Francesco Cameli
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ const
     omnicollider_ver = NimblePkgVersion
 
 #-v / --version
-let version_flag = "OmniCollider - version " & $omnicollider_ver & "\n(c) 2020 Francesco Cameli"
+let version_flag = "OmniCollider - version " & $omnicollider_ver & "\n(c) 2020-2021 Francesco Cameli"
 
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
 const default_sc_path = "~/.nimble/pkgs/omnicollider-" & omnicollider_ver & "/omnicolliderpkg/deps/supercollider"
