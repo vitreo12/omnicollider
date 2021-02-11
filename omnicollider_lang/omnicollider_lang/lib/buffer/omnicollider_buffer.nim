@@ -58,7 +58,7 @@ omniBufferInterface:
         var snd_buf : pointer
         let bufnum = buffer.input_bufnum
         if buffer.bufnum != bufnum:
-            snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum),cint(buffer.print_invalid))
+            snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
 
         #Valid
         if not isNil(snd_buf):
@@ -116,3 +116,8 @@ omniBufferInterface:
         
         if actual_index >= 0 and actual_index < buffer.size:
             buffer.snd_buf_data[actual_index] = float32(x)
+
+    #Use the extra block to add setter for input_num, used in omnicollider_buffers call
+    extra:
+        proc omnicollider_set_input_bufnum_buffer*(buffer : Buffer, input_bufnum : float) : void {.inline.} =
+            buffer.input_bufnum = input_bufnum

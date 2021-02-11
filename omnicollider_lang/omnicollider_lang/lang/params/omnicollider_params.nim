@@ -28,7 +28,7 @@ import macros, strutils
 macro omnicollider_params*(ins_number : typed, params_number : typed, params_names : typed) : untyped =
     let params_names_val = params_names.getImpl()
     if params_names_val.kind != nnkStrLit:
-        error "params: omnicollider can't retrieve params names."    
+        error "params: omnicollider can't retrieve params' names."    
     
     let 
         ins_number_lit    = ins_number.intVal()

@@ -186,18 +186,18 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     
     var 
         num_inputs  = parseInt(io_file_seq[0])     
-        input_names_string = io_file_seq[1]
-        input_names = input_names_string.split(',')
-        input_defaults_string = io_file_seq[2]
-        input_defaults = input_defaults_string.split(',')
+        inputs_names_string = io_file_seq[1]
+        inputs_names = inputs_names_string.split(',')
+        inputs_defaults_string = io_file_seq[2]
+        inputs_defaults = inputs_defaults_string.split(',')
         num_params = parseInt(io_file_seq[3])
-        param_names_string = io_file_seq[4]
-        param_names = param_names_string.split(',')
-        param_defaults_string = io_file_seq[5]
-        param_defaults = param_defaults_string.split(',')
+        params_names_string = io_file_seq[4]
+        params_names = params_names_string.split(',')
+        params_defaults_string = io_file_seq[5]
+        params_defaults = params_defaults_string.split(',')
         num_buffers = parseInt(io_file_seq[6])
-        buffer_names_string = io_file_seq[7]
-        buffer_names = buffer_names_string.split(',')
+        buffers_names_string = io_file_seq[7]
+        buffers_names = buffers_names_string.split(',')
         num_outputs = parseInt(io_file_seq[9])
 
     #Merge inputs with buffers and params
@@ -205,13 +205,13 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Do this check cause no params == "NIL", don't wanna add that
     if num_params > 0:
         num_inputs += num_params
-        input_names.add(param_names)
-        input_defaults.add(param_defaults)
+        inputs_names.add(params_names)
+        inputs_defaults.add(params_defaults)
     
     #Do this check cause no buffers == "NIL", don't wanna add that
     if num_buffers > 0:
         num_inputs += num_buffers
-        input_names.add(buffer_names)
+        inputs_names.add(buffers_names)
     
     # ======== #
     # SC I / O #
@@ -226,15 +226,15 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
         #CPP
         NUM_PARAMS_CPP = "#define NUM_PARAMS " & $num_params
-        PARAMS_INDICES_CPP = "const std::array<int," & $num_params & "> param_indices = { "
-        PARAMS_NAMES_CPP = "const std::array<std::string," & $num_params & "> param_names = { "
+        PARAMS_INDICES_CPP = "const std::array<int," & $num_params & "> params_indices = { "
+        PARAMS_NAMES_CPP = "const std::array<std::string," & $num_params & "> params_names = { "
 
     if num_inputs == 0:
         multiNew_string.add(");")
     else:
         arg_string.add("arg ")
         multiNew_string.add(",")
-        for index, input_name in input_names:
+        for index, input_name in inputs_names:
             var 
                 default_val : string
                 is_param  = false
@@ -242,7 +242,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
             #ins and params, num_inputs is (num_inputs + num_params + num_buffers)
             if index < (num_inputs - num_buffers):
-                default_val = input_defaults[index]
+                default_val = inputs_defaults[index]
 
                 if index >= (num_inputs - num_params - num_buffers):
                     PARAMS_INDICES_CPP.add($index & ",")

@@ -50,19 +50,16 @@ World* SCWorld;
 //Wrappers around RTAlloc, RTRealloc, RTFree
 void* RTAlloc_func(size_t in_size)
 {
-    //Print("Calling RTAlloc_func with size: %d\n", in_size);
     return ft->fRTAlloc(SCWorld, in_size);
 }
 
 void* RTRealloc_func(void* in_ptr, size_t in_size)
 {
-    //Print("Calling RTRealloc_func with size: %d\n", in_size);
     return ft->fRTRealloc(SCWorld, in_ptr, in_size);
 }
 
 void RTFree_func(void* in_ptr)
 {
-    //Print("Calling RTFree_func\n");
     ft->fRTFree(SCWorld, in_ptr);
 }
 
@@ -104,57 +101,53 @@ extern "C"
         //If bufnum is not more that maximum number of buffers in World* it means bufnum doesn't point to a LocalBuf
         if(!(bufnum >= SCWorld->mNumSndBufs))
         {
-            SndBuf* buf = SCWorld->mSndBufs + bufnum; 
+            SndBuf* snd_buf = SCWorld->mSndBufs + bufnum; 
 
-            if(!buf->data)
+            if(!(snd_buf->data))
             {
                 if(print_invalid)
                     printf("WARNING: Omni: Invalid buffer at index %d\n", bufnum);
                 return nullptr;
             }
 
-            return (void*)buf;
+            return (void*)snd_buf;
         }
         else
         {
-            printf("WARNING: Omni: local buffers are not yet supported \n");
+            printf("ERROR: Omni: local buffers are not yet supported\n");
             return nullptr;
-            //It would require to provide "unit" here (to retrieve parent). Perhaps it can be passed in void* buffer_interface?
+            //It would require to provide "unit" here (to retrieve parent). 
+            //Perhaps it can be passed in void* buffer_interface?
         }
     }
 
-    void lock_buffer_SC(void* buf)
+    void lock_buffer_SC(void* snd_buf)
     {
         #ifdef SUPERNOVA
-        SndBuf* snd_buf = (SndBuf*)buf;
-        ACQUIRE_SNDBUF_SHARED(snd_buf);
+        ACQUIRE_SNDBUF_SHARED((SndBuf*)snd_buf);
         #endif
     }
 
-    void unlock_buffer_SC(void* buf)
+    void unlock_buffer_SC(void* snd_buf)
     {
         #ifdef SUPERNOVA
-        SndBuf* snd_buf = (SndBuf*)buf;
-        RELEASE_SNDBUF_SHARED(snd_buf);
+        RELEASE_SNDBUF_SHARED((SndBuf*)snd_buf);
         #endif
     }
 
-    int get_frames_buffer_SC(void* buf)
+    int get_frames_buffer_SC(void* snd_buf)
     {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        return snd_buf->frames;
+        return ((SndBuf*)snd_buf)->frames;
     }
 
-    double get_samplerate_buffer_SC(void* buf)
+    double get_samplerate_buffer_SC(void* snd_buf)
     {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        return snd_buf->samplerate;
+        return ((SndBuf*)snd_buf)->samplerate;
     }
 
-    int get_channels_buffer_SC(void* buf)
+    int get_channels_buffer_SC(void* snd_buf)
     {
-        SndBuf* snd_buf = (SndBuf*)buf;
-        return snd_buf->channels;
+        return ((SndBuf*)snd_buf)->channels;
     }
 }
 
@@ -215,9 +208,9 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
     //Set starting input values for params
     for(int i = 0; i < NUM_PARAMS; i++)
     {
-        int param_index = param_indices[i];
+        int param_index = params_indices[i];
         float in_val = unit->mInBuf[param_index][0];
-        const char* param_name = param_names[i].c_str();
+        const char* param_name = params_names[i].c_str();
         Omni_UGenSetParam(unit->omni_ugen, param_name, in_val);
     }
     

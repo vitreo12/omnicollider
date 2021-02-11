@@ -25,7 +25,7 @@ import macros, strutils
 macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_number : typed, omni_buffers_names : typed) : untyped =
     let buffers_names_val = omni_buffers_names.getImpl()
     if buffers_names_val.kind != nnkStrLit:
-        error "params: omnicollider can't retrieve params names."    
+        error "buffers: omnicollider can't retrieve buffers' names."    
     
     let 
         ins_number_lit     = ins_number.intVal()
@@ -61,7 +61,7 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
                 buffer_name_ident = newIdentNode(buffer_name)
                 buffer_name_omni_buffer_ident = newIdentNode(buffer_name & "_omni_buffer")
                 omni_ins_ptr = newIdentNode("omni_ins_ptr")
-                buffer_index = int(ins_number_lit + params_number_lit + index)
+                buffer_index = int(ins_number_lit + params_number_lit + index) #shift by ins + params
 
             perform_block.add(
                 nnkLetSection.newTree(
@@ -74,17 +74,15 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
                         )
                     )
                 ),
-                nnkAsgn.newTree(
-                    nnkDotExpr.newTree(
-                        buffer_name_ident,
-                        newIdentNode("input_bufnum")
-                    ),
+                nnkCall.newTree(
+                    newIdentNode("omnicollider_set_input_bufnum_buffer"),
+                    buffer_name_ident,
                     nnkBracketExpr.newTree(
                         nnkBracketExpr.newTree(
                             omni_ins_ptr,
                             newLit(buffer_index)
                         ),
-                    newLit(0)
+                        newLit(0)
                     )
                 )
             )
