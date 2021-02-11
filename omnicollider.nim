@@ -225,9 +225,9 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         multiOut_string = ""
 
         #CPP
-        NUM_PARAMS_CPP = "#define NUM_PARAMS " & $num_params
-        PARAMS_INDICES_CPP = "const std::array<int," & $num_params & "> params_indices = { "
-        PARAMS_NAMES_CPP = "const std::array<std::string," & $num_params & "> params_names = { "
+        NUM_PARAMS_CPP     = "#define NUM_PARAMS " & $num_params
+        PARAMS_INDICES_CPP = "const std::array<int,NUM_PARAMS> params_indices = { "
+        PARAMS_NAMES_CPP   = "const std::array<std::string,NUM_PARAMS> params_names = { "
 
     if num_inputs == 0:
         multiNew_string.add(");")
