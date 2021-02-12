@@ -200,7 +200,10 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         buffers_names = buffers_names_string.split(',')
         num_outputs = parseInt(io_file_seq[9])
 
-    #Merge inputs with buffers and params
+    #Check for 0 inputs, cleanup the entries ("NIL" and 0)
+    if num_inputs == 0:
+        inputs_names.del(0)
+        inputs_defaults.del(0)
 
     #Do this check cause no params == "NIL", don't wanna add that
     if num_params > 0:

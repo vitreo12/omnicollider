@@ -23,6 +23,7 @@
 #Explicit import of omni_wrapper for all things needed to declare new omni structs
 import omni_lang/core/wrapper/omni_wrapper
 
+#[ All these functions are defined in the Max object cpp file ]#
 proc get_buffer_SC(sc_world : pointer, fbufnum : cfloat, print_invalid : cint) : pointer {.importc, cdecl.}
 proc get_buffer_data_SC(snd_buf : pointer) : ptr float32 {.importc, cdecl.}
 proc get_frames_buffer_SC(snd_buf : pointer) : cint {.importc, cdecl.}
@@ -32,12 +33,13 @@ when defined(supernova):
     proc lock_buffer_SC  (snd_buf : pointer) : void {.importc, cdecl.}
     proc unlock_buffer_SC(snd_buf : pointer) : void {.importc, cdecl.}
 
+#Template to not duplicate code for either snd_buf or snd_buf_data invalidity
 template invalid_buffer() : untyped {.dirty.} =
     buffer.bufnum = float32(-1e9)
     buffer.print_invalid = 0
     return false
 
-#The interface has been generated with this command:
+#Create a new Buffer interface for the omnimax wrapper
 omniBufferInterface:
     debug: false
 
@@ -55,7 +57,7 @@ omniBufferInterface:
         buffer.bufnum    = float32(-1e9)
         buffer.print_invalid = 1
 
-    #(buffer : Buffer, val : cstring) -> void
+    #(buffer : Buffer, value : cstring) -> void
     update:
         discard
 
