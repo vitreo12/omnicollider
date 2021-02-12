@@ -28,8 +28,14 @@ proc get_buffer_data_SC(snd_buf : pointer) : ptr float32 {.importc, cdecl.}
 proc get_frames_buffer_SC(snd_buf : pointer) : cint {.importc, cdecl.}
 proc get_channels_buffer_SC(snd_buf : pointer) : cint {.importc, cdecl.}
 proc get_samplerate_buffer_SC(snd_buf : pointer) : cdouble {.importc, cdecl.}
-proc lock_buffer_SC  (snd_buf : pointer) : void {.importc, cdecl.}
-proc unlock_buffer_SC(snd_buf : pointer) : void {.importc, cdecl.}
+when defined(supernova):
+    proc lock_buffer_SC  (snd_buf : pointer) : void {.importc, cdecl.}
+    proc unlock_buffer_SC(snd_buf : pointer) : void {.importc, cdecl.}
+
+template invalid_buffer() : untyped {.dirty.} =
+    buffer.bufnum = float32(-1e9)
+    buffer.print_invalid = 0
+    return false
 
 #The interface has been generated with this command:
 omniBufferInterface:
@@ -41,13 +47,13 @@ omniBufferInterface:
         snd_buf_data  : ptr UncheckedArray[float32]
         bufnum        : float
         input_bufnum  : float
-        print_invalid : bool
+        print_invalid : int
 
     #(buffer_interface : pointer, buffer_name : cstring) -> void
     init:
         buffer.sc_world  = buffer_interface #SC's World* is passed in as the buffer_interface argument
         buffer.bufnum    = float32(-1e9)
-        buffer.print_invalid = true
+        buffer.print_invalid = 1
 
     #(buffer : Buffer, val : cstring) -> void
     update:
@@ -55,30 +61,34 @@ omniBufferInterface:
 
     #(buffer : Buffer) -> bool
     lock:
-        var snd_buf : pointer
+        #Check for new Buffer
         let bufnum = buffer.input_bufnum
         if buffer.bufnum != bufnum:
-            snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
-
-        #Valid
-        if not isNil(snd_buf):
+            let snd_buf = get_buffer_SC(buffer.sc_world, cfloat(bufnum), cint(buffer.print_invalid))
             buffer.snd_buf = snd_buf
-            buffer.bufnum = bufnum
-            buffer.print_invalid = true #next time there's an invalid buffer, print it out
-            buffer.length = get_frames_buffer_SC(snd_buf)
-            buffer.samplerate = get_samplerate_buffer_SC(snd_buf)
-            buffer.channels = get_channels_buffer_SC(snd_buf)
-        #Invalid
-        else:
-            buffer.bufnum = float(-1000000000.0)
-            buffer.print_invalid = false
-            return false
+
+            if not isNil(snd_buf):
+                buffer.bufnum = bufnum
+                buffer.print_invalid = 1 #next time there's an invalid buffer, print it out
+                buffer.length = get_frames_buffer_SC(snd_buf)
+                buffer.samplerate = get_samplerate_buffer_SC(snd_buf)
+                buffer.channels = get_channels_buffer_SC(snd_buf)
+
+        #This might still be valid if Buffer.free has been run, that's why I also check against data
+        let snd_buf = buffer.snd_buf
+        if isNil(snd_buf):
+            invalid_buffer()
+
+        #Get float* data and check if it's still valid (Buffer might have been freed)
+        let buffer_data = cast[pointer](get_buffer_data_SC(snd_buf))
+        if isNil(buffer_data):
+            invalid_buffer()
 
         when defined(supernova):
             lock_buffer_SC(snd_buf)
 
-        #Get data after locking
-        buffer.snd_buf_data = cast[ptr UncheckedArray[float32]](get_buffer_data_SC(snd_buf))
+        #After lock, set snd_buf_data
+        buffer.snd_buf_data = cast[ptr UncheckedArray[float32]](buffer_data)
 
         return true
     

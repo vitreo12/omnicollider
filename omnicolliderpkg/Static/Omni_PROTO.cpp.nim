@@ -118,15 +118,21 @@ extern "C"
     void lock_buffer_SC(void* snd_buf)
     {
         #ifdef SUPERNOVA
-        ACQUIRE_SNDBUF_SHARED((SndBuf*)snd_buf);
+        ACQUIRE_SNDBUF_SHARED(((SndBuf*)snd_buf));
         #endif
     }
 
     void unlock_buffer_SC(void* snd_buf)
     {
         #ifdef SUPERNOVA
-        RELEASE_SNDBUF_SHARED((SndBuf*)snd_buf);
+        RELEASE_SNDBUF_SHARED(((SndBuf*)snd_buf));
         #endif
+    }
+
+    float* get_buffer_data_SC(void* snd_buf)
+    {
+        float* data = ((SndBuf*)snd_buf)->data;
+        return data;
     }
 
     int get_frames_buffer_SC(void* snd_buf)
