@@ -87,5 +87,5 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
             )
 
 #register the omni_params_post_hook call
-template omni_params_post_hook*() : untyped =
+template omni_params_pre_perform_hook*() : untyped =
     omnicollider_params(omni_inputs, omni_params, omni_params_names_const)

@@ -89,5 +89,5 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
 
     #error repr result
 
-template omni_buffers_post_hook*() : untyped =
+template omni_buffers_pre_perform_hook*() : untyped =
     omnicollider_buffers(omni_inputs, omni_params, omni_buffers, omni_buffers_names_const)
