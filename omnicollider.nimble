@@ -27,7 +27,7 @@ license       = "MIT"
 
 requires "nim >= 1.4.0"
 requires "cligen >= 1.0.0"
-requires "omni >= 0.3.0"
+requires "omni == 0.3.0"
 
 #Ignore omnicollider_lang
 skipDirs = @["omnicollider_lang"]
@@ -38,16 +38,19 @@ installDirs = @["omnicolliderpkg"]
 #Compiler executable
 bin = @["omnicollider"]
 
-#If using "nimble install" instead of "nimble installOmniCollider", make sure omnicollider-lang is still getting installed
+#Make sure omnicollider-lang is getting installed first
 before install:
     let package_dir = getPkgDir()
     
+    #Update SuperCollider's source files
     withDir(package_dir):
+        echo "Updating the SuperCollider repository..."
         exec "git submodule update --init --recursive"
 
+    #Install omnicollider_lang
     withDir(package_dir & "/omnicollider_lang"):
         exec "nimble install"
 
-#before/after are BOTH needed for any of the two to work
+#before / after are BOTH needed for any of the two to work
 after install:
     discard
