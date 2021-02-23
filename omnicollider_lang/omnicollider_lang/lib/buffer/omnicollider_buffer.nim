@@ -108,6 +108,9 @@ omniBufferInterface:
         if chans == 1:
             actual_index = index
         else:
+            #channel is 0 indexed
+            if channel >= chans:
+                return 0.0
             actual_index = (index * chans) + channel
         
         if actual_index >= 0 and actual_index < buffer.size:
@@ -124,6 +127,9 @@ omniBufferInterface:
         if chans == 1:
             actual_index = index
         else:
+            #channel is 0 indexed
+            if channel >= chans:
+                return
             actual_index = (index * chans) + channel
         
         if actual_index >= 0 and actual_index < buffer.size:
