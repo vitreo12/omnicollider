@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2020 Francesco Cameli
+# Copyright (c) 2020-2021 Francesco Cameli
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,61 +20,47 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-var OMNI_PROTO_CPP = """
+var OMNI_PROTO_INCLUDES = """
 #include <atomic>
+#include <array>
+#include <string>
 #include "SC_PlugIn.h"
 #include "omni.h"
+"""
 
+var OMNI_PROTO_CPP = """
 #define NAME "Omni_PROTO"
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(_WIN32)
     #define EXTENSION ".scx"
 #elif __linux__
     #define EXTENSION ".so"
-#elif _WIN32
-    #define EXTENSION ".scx"
 #endif
 
 //Interface table
 static InterfaceTable *ft;
 
 //Use an atomic flag so it works for supernova too
-std::atomic_flag has_init_world = ATOMIC_FLAG_INIT;
-bool world_init = false;
+std::atomic_flag init_global_lock = ATOMIC_FLAG_INIT;
+bool init_global = false;
 
-//Initialization functions. Wrapped in C since the Omni lib is exported with C named libraries
-extern "C" 
-{
-    //World pointer. This is declared in SCBuffer.cpp
-    extern World* SCWorld;
-
-    //Initialization of World
-    extern void init_sc_world(void* inWorld);
-}
+//World pointer. This global pointer is used for RT allocation functions
+World* SCWorld;
 
 //Wrappers around RTAlloc, RTRealloc, RTFree
 void* RTAlloc_func(size_t in_size)
 {
-    //Print("Calling RTAlloc_func with size: %d\n", in_size);
     return ft->fRTAlloc(SCWorld, in_size);
 }
 
 void* RTRealloc_func(void* in_ptr, size_t in_size)
 {
-    //Print("Calling RTRealloc_func with size: %d\n", in_size);
     return ft->fRTRealloc(SCWorld, in_ptr, in_size);
 }
 
 void RTFree_func(void* in_ptr)
 {
-    //Print("Calling RTFree_func\n");
     ft->fRTFree(SCWorld, in_ptr);
-}
-
-//Wrappers around Print
-void RTPrint_debug_func(const char* format_string, size_t value)
-{
-    ft->fPrint("%s%lu\n", format_string, value);
 }
 
 void RTPrint_str_func(const char* format_string)
@@ -92,16 +78,77 @@ void RTPrint_int_func(int value)
     ft->fPrint("%d\n", value);
 }
 
-//Wrapper around world->mSampleRate
-double getSampleRate_func()
+/*********************************/
+/* omnicollider buffer interface */
+/*********************************/
+extern "C"
 {
-    return SCWorld->mSampleRate;
-}
+    void* get_buffer_SC(void* buffer_SCWorld, float fbufnum, int print_invalid)
+    {
+        if(!buffer_SCWorld)
+            return nullptr;
 
-//Wrapper around world->mBufLength
-int getBufLength_func()
-{
-    return SCWorld->mBufLength;
+        World* SCWorld = (World*)buffer_SCWorld;
+
+        uint32 bufnum = (int)fbufnum; 
+
+        //If bufnum is not more that maximum number of buffers in World* it means bufnum doesn't point to a LocalBuf
+        if(!(bufnum >= SCWorld->mNumSndBufs))
+        {
+            SndBuf* snd_buf = SCWorld->mSndBufs + bufnum; 
+
+            if(!(snd_buf->data))
+            {
+                if(print_invalid)
+                    printf("WARNING: Omni: Invalid buffer at index %d\n", bufnum);
+                return nullptr;
+            }
+
+            return (void*)snd_buf;
+        }
+        else
+        {
+            printf("ERROR: Omni: local buffers are not yet supported\n");
+            return nullptr;
+            //It would require to provide "unit" here (to retrieve parent). 
+            //Perhaps it can be passed in void* buffer_interface?
+        }
+    }
+
+    void lock_buffer_SC(void* snd_buf)
+    {
+        #ifdef SUPERNOVA
+        ACQUIRE_SNDBUF_SHARED(((SndBuf*)snd_buf));
+        #endif
+    }
+
+    void unlock_buffer_SC(void* snd_buf)
+    {
+        #ifdef SUPERNOVA
+        RELEASE_SNDBUF_SHARED(((SndBuf*)snd_buf));
+        #endif
+    }
+
+    float* get_buffer_data_SC(void* snd_buf)
+    {
+        float* data = ((SndBuf*)snd_buf)->data;
+        return data;
+    }
+
+    int get_frames_buffer_SC(void* snd_buf)
+    {
+        return ((SndBuf*)snd_buf)->frames;
+    }
+
+    double get_samplerate_buffer_SC(void* snd_buf)
+    {
+        return ((SndBuf*)snd_buf)->samplerate;
+    }
+
+    int get_channels_buffer_SC(void* snd_buf)
+    {
+        return ((SndBuf*)snd_buf)->channels;
+    }
 }
 
 //SC struct
@@ -118,55 +165,64 @@ static void Omni_PROTO_silence_next(Omni_PROTO* unit, int inNumSamples);
 
 void Omni_PROTO_Ctor(Omni_PROTO* unit) 
 {
-    //Initialization routines for the Omni_PROTO UGen. 
-    if(!world_init)
+    //Initialization routines. These are executed only the first time an OMNI_PROTO UGen is created.
+    if(!init_global)
     {
         //Acquire lock
-        while(has_init_world.test_and_set(std::memory_order_acquire))
+        while(init_global_lock.test_and_set(std::memory_order_acquire))
             ; //spin
 
-        //First thread that reaches this will set it for all
-        if(!world_init)
+        //First thread that reaches this will set it for the entire shared object just once
+        if(!init_global)
         {
-            if(!(&init_sc_world) || !(&Omni_InitGlobal))
+            if(!(&Omni_InitGlobal))
                 Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
             else 
-            {
-                //Init SCWorld also in the omni module
-                init_sc_world((void*)unit->mWorld);
-                
-                //Get SCWorld pointer needed for RTAlloc wrappers
+            {               
+                //Set SCWorld pointer used in the RT functions
                 SCWorld = unit->mWorld;
                 
-                //Init omni with all the function pointers
+                //Init omni with all the correct function pointers
                 Omni_InitGlobal(
                     (omni_alloc_func_t*)RTAlloc_func, 
                     (omni_realloc_func_t*)RTRealloc_func, 
-                    (omni_free_func_t*)RTFree_func, 
-                    (omni_print_debug_func_t*)RTPrint_debug_func,
+                    (omni_free_func_t*)RTFree_func,
                     (omni_print_str_func_t*)RTPrint_str_func,
                     (omni_print_float_func_t*)RTPrint_float_func,
-                    (omni_print_int_func_t*)RTPrint_int_func,
-                    (omni_get_samplerate_func_t*)getSampleRate_func,
-                    (omni_get_bufsize_func_t*)getBufLength_func
+                    (omni_print_int_func_t*)RTPrint_int_func
                 );
             }
 
-            //Still init. Things won't change up until next server reboot.
-            world_init = true;
+            //Completed initialization
+            init_global = true;
         }
 
         //Release lock
-        has_init_world.clear(std::memory_order_release); 
+        init_global_lock.clear(std::memory_order_release); 
     }
 
-    if(&Omni_UGenAllocInit32 && &init_sc_world && &Omni_InitGlobal)
-        unit->omni_ugen = Omni_UGenAllocInit32(unit->mInBuf, unit->mWorld->mBufLength, unit->mWorld->mSampleRate, (void*)unit->mWorld);
-    else
+    //Alloc
+    unit->omni_ugen = Omni_UGenAlloc();
+
+    //Set starting input values for params
+    for(int i = 0; i < NUM_PARAMS; i++)
     {
-        Print("ERROR: No %s%s loaded\n", NAME, EXTENSION);
-        unit->omni_ugen = nullptr;
+        int param_index = params_indices[i];
+        float in_val = unit->mInBuf[param_index][0];
+        const char* param_name = params_names[i].c_str();
+        Omni_UGenSetParam(unit->omni_ugen, param_name, in_val);
     }
+    
+    //Initialize
+    bool omni_initialized = Omni_UGenInit(
+        unit->omni_ugen,
+        unit->mWorld->mBufLength, 
+        unit->mWorld->mSampleRate, 
+        (void*)unit->mWorld
+    );
+
+    if(!omni_initialized)
+        unit->omni_ugen = nullptr;
         
     if(unit->omni_ugen)
     {
@@ -188,7 +244,12 @@ void Omni_PROTO_Dtor(Omni_PROTO* unit)
 
 void Omni_PROTO_next(Omni_PROTO* unit, int inNumSamples) 
 {
-    Omni_UGenPerform32(unit->omni_ugen, unit->mInBuf, unit->mOutBuf, inNumSamples);
+    Omni_UGenPerform32(
+        unit->omni_ugen, 
+        unit->mInBuf, 
+        unit->mOutBuf, 
+        inNumSamples
+    );
 }
 
 void Omni_PROTO_silence_next(Omni_PROTO* unit, int inNumSamples)

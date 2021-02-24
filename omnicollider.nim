@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2020 Francesco Cameli
+# Copyright (c) 2020-2021 Francesco Cameli
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,33 +20,42 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import cligen, terminal, os, strutils, osproc
+import cligen, terminal, os, strutils
+
+when not defined(Windows):
+    import osproc
 
 #Package version is passed as argument when building. It will be constant and set correctly
 const 
     NimblePkgVersion {.strdefine.} = ""
     omnicollider_ver = NimblePkgVersion
 
+#-v / --version
+let version_flag = "OmniCollider - version " & $omnicollider_ver & "\n(c) 2020-2021 Francesco Cameli"
+
 #Default to the omni nimble folder, which should have it installed if omni has been installed correctly
 const default_sc_path = "~/.nimble/pkgs/omnicollider-" & omnicollider_ver & "/omnicolliderpkg/deps/supercollider"
-
-#Extension for static lib
-const static_lib_extension = ".a"
 
 when defined(Linux):
     const
         default_extensions_path = "~/.local/share/SuperCollider/Extensions"
-        ugen_extension = ".so"
+        ugen_extension          = ".so"
+        lib_prepend             = "lib"
+        static_lib_extension    = ".a"
 
 when defined(MacOSX) or defined(MacOS):
     const 
         default_extensions_path = "~/Library/Application Support/SuperCollider/Extensions"
-        ugen_extension = ".scx"
+        ugen_extension          = ".scx"
+        lib_prepend            = "lib"
+        static_lib_extension   = ".a"
 
 when defined(Windows):
     const 
         default_extensions_path = "~\\AppData\\Local\\SuperCollider\\Extensions"
-        ugen_extension = ".scx"
+        ugen_extension          = ".scx"
+        lib_prepend             = ""
+        static_lib_extension    = ".lib"
 
 proc printError(msg : string) : void =
     setForegroundColor(fgRed)
@@ -115,8 +124,8 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         fullPathToCMakeFile = $fullPathToNewFolder & "/" & "CMakeLists.txt"
 
         #These are the paths to the generated static libraries
-        fullPathToStaticLib = $fullPathToNewFolder & "/lib" & $omniFileName & $static_lib_extension
-        fullPathToStaticLib_supernova = $fullPathToNewFolder & "/lib" & $omniFileName & "_supernova" & $static_lib_extension
+        fullPathToStaticLib = $fullPathToNewFolder & "/" & $lib_prepend & $omniFileName & $static_lib_extension
+        fullPathToStaticLib_supernova = $fullPathToNewFolder & "/" & $lib_prepend & $omniFileName & "_supernova" & $static_lib_extension
     
     #Create directory in same folder as .omni file
     removeDir(fullPathToNewFolder)
@@ -130,13 +139,13 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # ================= #
 
     #Compile omni file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
-    let omni_command = "omni \"" & $fileFullPath & "\" -a:" & $architecture & " -i:omnicollider_lang -l:static -b:32 -d:writeIO -d:tempDir:\"" & $fullPathToNewFolder & "\" -o:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path... go figure!
-    when not defined(Windows):
-        let failedOmniCompilation = execCmd(omni_command)
-    else:
+    when defined(Windows):
         let failedOmniCompilation = execShellCmd(omni_command)
+    else:
+        let failedOmniCompilation = execCmd(omni_command)
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
@@ -147,13 +156,13 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" -a:" & $architecture & " -n:lib" & $omniFileName & "_supernova -i:omnicollider_lang -l:static -b:32 -d:multithreadBuffers -o:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
-        when not defined(Windows):
-            let failedOmniCompilation_supernova = execCmd(omni_command_supernova)
-        else:
+        when defined(Windows):
             let failedOmniCompilation_supernova = execShellCmd(omni_command_supernova)
+        else:
+            let failedOmniCompilation_supernova = execCmd(omni_command_supernova)
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
@@ -166,86 +175,108 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # ================ #
     
     let 
-        fullPathToIOFile = fullPathToNewFolder & "/IO.txt"
+        fullPathToIOFile = fullPathToNewFolder & "/omni_io.txt"
         io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
-    if io_file_seq.len != 5:
-        printError("Invalid IO.txt file.")
+    if io_file_seq.len != 11:
+        printError("Invalid omni_io.txt file.")
         removeDir(fullPathToNewFolder)
         return 1
     
-    let 
-        num_inputs  = parseInt(io_file_seq[0])
-        input_names_string = io_file_seq[1]
-        input_names = input_names_string.split(',') #this is a seq now
-        default_vals_string = io_file_seq[2]
-        default_vals = default_vals_string.split(',')
-        num_outputs = parseInt(io_file_seq[3])
+    var 
+        num_inputs  = parseInt(io_file_seq[0])     
+        inputs_names_string = io_file_seq[1]
+        inputs_names = inputs_names_string.split(',')
+        inputs_defaults_string = io_file_seq[2]
+        inputs_defaults = inputs_defaults_string.split(',')
+        num_params = parseInt(io_file_seq[3])
+        params_names_string = io_file_seq[4]
+        params_names = params_names_string.split(',')
+        params_defaults_string = io_file_seq[5]
+        params_defaults = params_defaults_string.split(',')
+        num_buffers = parseInt(io_file_seq[6])
+        buffers_names_string = io_file_seq[7]
+        buffers_names = buffers_names_string.split(',')
+        num_outputs = parseInt(io_file_seq[9])
+
+    #Check for 0 inputs, cleanup the entries ("NIL" and 0)
+    if num_inputs == 0:
+        inputs_names.del(0)
+        inputs_defaults.del(0)
+
+    #Do this check cause no params == "NIL", don't wanna add that
+    if num_params > 0:
+        num_inputs += num_params
+        inputs_names.add(params_names)
+        inputs_defaults.add(params_defaults)
+    
+    #Do this check cause no buffers == "NIL", don't wanna add that
+    if num_buffers > 0:
+        num_inputs += num_buffers
+        inputs_names.add(buffers_names)
     
     # ======== #
     # SC I / O #
     # ======== #
     
     var 
+        #SC
         arg_string = ""
         arg_rates = ""
         multiNew_string = "^this.multiNew('audio'"
         multiOut_string = ""
 
-    #No input names
-    if input_names[0] == "__NO_PARAM_NAMES__":
-        if num_inputs == 0:
-            multiNew_string.add(");")
-        else:
-            arg_string.add("arg ")
-            multiNew_string.add(",")
-            
-            for i in 1..num_inputs:
+        #CPP
+        NUM_PARAMS_CPP     = "#define NUM_PARAMS " & $num_params
+        PARAMS_INDICES_CPP = "const std::array<int,NUM_PARAMS> params_indices = { "
+        PARAMS_NAMES_CPP   = "const std::array<std::string,NUM_PARAMS> params_names = { "
 
-                let default_val = default_vals[(i - 1)]
-                
-                when defined(omni_debug):
-                    arg_rates.add("if(in" & $i & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-                    arg_rates.add("if(in" & $i & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"in" & $i & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-                else:
-                    arg_rates.add("if(in" & $i & ".class == Buffer, { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-                    arg_rates.add("if(in" & $i & ".rate != 'audio', { in" & $i & " = K2A.ar(in" & $i & "); });\n\t\t")
-
-                if i == num_inputs:
-                    arg_string.add("in" & $i & "=(" & $default_val & ");")
-                    multiNew_string.add("in" & $i & ");")
-                    break
-
-                arg_string.add("in" & $i & "=(" & $default_val & "), ")
-                multiNew_string.add("in" & $i & ", ")
-        
-    #input names
+    if num_inputs == 0:
+        multiNew_string.add(");")
     else:
-        if num_inputs == 0:
-            multiNew_string.add(");")
-        else:
-            arg_string.add("arg ")
-            multiNew_string.add(",")
-            for index, input_name in input_names:
+        arg_string.add("arg ")
+        multiNew_string.add(",")
+        for index, input_name in inputs_names:
+            var 
+                default_val : string
+                is_param  = false
+                is_buffer = false
 
-                let default_val = default_vals[index]
+            #ins and params, num_inputs is (num_inputs + num_params + num_buffers)
+            if index < (num_inputs - num_buffers):
+                default_val = inputs_defaults[index]
 
-                #This duplication is not good at all. Find a neater way.
-                when defined(omni_debug):
-                    arg_rates.add("if(" & $input_name & ".class == Buffer, { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \\\"" & $input_name & "\\\" at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                else:
-                    arg_rates.add("if(" & $input_name & ".class == Buffer, { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
-                    arg_rates.add("if(" & $input_name & ".rate != 'audio', { " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+                if index >= (num_inputs - num_params - num_buffers):
+                    PARAMS_INDICES_CPP.add($index & ",")
+                    PARAMS_NAMES_CPP.add("\"" & $input_name & "\",")
+                    is_param = true
 
-                if index == num_inputs - 1:
-                    arg_string.add($input_name & "=(" & $default_val & ");")
-                    multiNew_string.add($input_name & ");")
-                    break
+            #buffers default to 0
+            else:
+                is_buffer   = true
+                default_val = "0"
 
-                arg_string.add($input_name & "=(" & $default_val & "), ")
-                multiNew_string.add($input_name & ", ")
+            
+            if is_param:
+                arg_rates.add("if(" & $input_name & ".rate == 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
+            elif is_buffer:
+                arg_rates.add("if(" & $input_name & ".class != Buffer, { if(" & $input_name & ".rate == 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); }) });\n\t\t")
+            else:
+                arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
+
+            if index == num_inputs - 1:
+                arg_string.add($input_name & "=(" & $default_val & ");")
+                multiNew_string.add($input_name & ");")
+                break
+
+            arg_string.add($input_name & "=(" & $default_val & "), ")
+            multiNew_string.add($input_name & ", ")
+                
+    PARAMS_INDICES_CPP.removeSuffix(',')
+    PARAMS_NAMES_CPP.removeSuffix(',')
+    PARAMS_INDICES_CPP.add(" };")
+    PARAMS_NAMES_CPP.add(" };")
 
     #These are the files to overwrite! Need them at every iteration (when compiling multiple files or a folder)
     include "omnicolliderpkg/Static/Omni_PROTO.cpp.nim"
@@ -266,6 +297,9 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     OMNI_PROTO_CPP   = OMNI_PROTO_CPP.replace("Omni_PROTO", omniFileName)
     OMNI_PROTO_SC    = OMNI_PROTO_SC.replace("Omni_PROTO", omniFileName)
     OMNI_PROTO_CMAKE = OMNI_PROTO_CMAKE.replace("Omni_PROTO", omniFileName)
+
+    #Chain the file together with all correct infos too
+    OMNI_PROTO_CPP = $OMNI_PROTO_INCLUDES & "\n" & $NUM_PARAMS_CPP & "\n" & $PARAMS_INDICES_CPP & "\n" & PARAMS_NAMES_CPP & "\n" & "\n" & $OMNI_PROTO_CPP
     
     # =========== #
     # WRITE FILES #
@@ -293,30 +327,28 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     removeDir($fullPathToNewFolder & "/build")
     createDir($fullPathToNewFolder & "/build")
     
-    var sc_cmake_cmd : string
+    var 
+        supernova_on_off = "OFF"
+        sc_cmake_cmd : string
+
+    if supernova:
+        supernova_on_off = "ON"
     
-    when(not(defined(Windows))):
-        if supernova:
-            sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
-        else:
-            sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
-    else:
+    when defined(Windows):
         #Cmake wants a path in unix style, not windows! Replace "/" with "\"
         let fullPathToNewFolder_Unix = fullPathToNewFolder.replace("\\", "/")
+        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+    else:
+        sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         
-        if supernova:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
-        else:
-            sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
-    
     #cd into the build directory
     setCurrentDir(fullPathToNewFolder & "/build")
     
     #Execute CMake
-    when not defined(Windows):
-        let failedSCCmake = execCmd(sc_cmake_cmd)
-    else:
+    when defined(Windows):
         let failedSCCmake = execShellCmd(sc_cmake_cmd)
+    else:
+        let failedSCCmake = execCmd(sc_cmake_cmd)
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCmake > 0:
@@ -325,16 +357,16 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         return 1
 
     #make command
-    when not(defined(Windows)):
-        let 
-            sc_compilation_cmd = "make"
-            #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
-            failedSCCompilation = execCmd(sc_compilation_cmd)
-    else:
+    when defined(Windows):
         let 
             sc_compilation_cmd  = "mingw32-make"
             #sc_compilation_cmd = "cmake --build . --config Release"
             failedSCCompilation = execShellCmd(sc_compilation_cmd) #execCmd doesn't work on Windows (since it wouldn't go through the powershell)
+    else:
+        let 
+            sc_compilation_cmd = "make"
+            #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
+            failedSCCompilation = execCmd(sc_compilation_cmd)
         
     
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
@@ -384,6 +416,11 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     return 0
 
 proc omnicollider(files : seq[string], supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+    #no files provided, print --version
+    if files.len == 0:
+        echo version_flag
+        return 0
+
     for omniFile in files:
         #Get full extended path
         let omniFileFullPath = omniFile.normalizedPath().expandTilde().absolutePath()
@@ -408,16 +445,11 @@ proc omnicollider(files : seq[string], supernova : bool = true, architecture : s
         else:
             printError($omniFileFullPath & " does not exist.")
             return 1
-
-    #no files provided
-    if files.len == 0:
-        printError("No Omni files to compile provided.")
-        return 1
     
     return 0
 
 #Workaround to pass custom version
-clCfg.version = "OmniCollider - version " & $omnicollider_ver & "\n(c) 2020 Francesco Cameli "
+clCfg.version = version_flag
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(omnicollider, 
@@ -432,6 +464,6 @@ dispatch(omnicollider,
         "architecture" : "Build architecture.",
         "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\".",
         "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
-        "removeBuildFiles" : "Remove source files used for compilation from outDir."        
+        "removeBuildFiles" : "Remove all source files used for compilation from outDir."        
     }
 )

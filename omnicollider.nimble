@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2020 Francesco Cameli
+# Copyright (c) 2020-2021 Francesco Cameli
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version       = "0.2.3"
+version       = "0.3.0"
 author        = "Francesco Cameli"
 description   = "SuperCollider wrapper for omni."
 license       = "MIT"
 
-requires "nim >= 1.0.0"
+requires "nim >= 1.4.0"
 requires "cligen >= 1.0.0"
-requires "omni >= 0.2.3"
+requires "omni == 0.3.0"
 
 #Ignore omnicollider_lang
 skipDirs = @["omnicollider_lang"]
@@ -38,21 +38,19 @@ installDirs = @["omnicolliderpkg"]
 #Compiler executable
 bin = @["omnicollider"]
 
-#If using "nimble install" instead of "nimble installOmniCollider", make sure omnicollider-lang is still getting installed
+#Make sure omnicollider-lang is getting installed first
 before install:
     let package_dir = getPkgDir()
     
+    #Update SuperCollider's source files
     withDir(package_dir):
+        echo "Updating the SuperCollider repository..."
         exec "git submodule update --init --recursive"
 
+    #Install omnicollider_lang
     withDir(package_dir & "/omnicollider_lang"):
         exec "nimble install"
 
-#before/after are BOTH needed for any of the two to work
+#before / after are BOTH needed for any of the two to work
 after install:
     discard
-
-#As nimble install, but with -d:release, -d:danger and --opt:speed. Also installs omni_lang.
-task installOmniCollider, "Install the omnicollider-lang package and the omnicollider compiler":
-    #Build and install the omnicollider compiler executable. This will also trigger the "before install" to install omnicollider_lang
-    exec "nimble install --passNim:-d:release --passNim:-d:danger --passNim:--opt:speed"

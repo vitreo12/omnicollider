@@ -50,7 +50,8 @@ To install `omnicollider`, simply use the `nimble` package manager (it comes bun
 
 ## **Usage**
 
-    omnicollider ~/.nimble/pkgs/omni-0.2.3/examples/OmniSaw.omni                                                                             
+    omnicollider ~/.nimble/pkgs/omni-0.3.0/examples/OmniSaw.omni
+
 ## **Website / Docs**
 
 Check omni's [website](https://vitreo12.github.io/omni).

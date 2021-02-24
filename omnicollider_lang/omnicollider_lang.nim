@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2020 Francesco Cameli
+# Copyright (c) 2020-2021 Francesco Cameli
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#Import omni_lang. This will also make it available in omnicollider_buffer for omni.alloc
-import omni_lang
-export omni_lang
+#Import / export omnicollider's params extensions
+import omnicollider_lang/lang/params/omnicollider_params
+export omnicollider_params
 
-#Import SC's Buffer module
+#Import / export omnicollider's buffers extensions
+import omnicollider_lang/lang/buffers/omnicollider_buffers
+export omnicollider_buffers
+
+#Import / export omnicollider's Buffer interface
 import omnicollider_lang/lib/buffer/omnicollider_buffer
 export omnicollider_buffer
