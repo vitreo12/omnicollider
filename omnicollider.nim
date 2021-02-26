@@ -138,10 +138,10 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
     # COMPILE OMNI FILE #
     # ================= #
 
-    #Compile omni file. Only pass the -d:omnicli and -d:tempDir flag here, so it generates the IO.txt file.
+    #Compile omni file 
     let omni_command = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
-    #Windows requires powershell to figure out the .nimble path... go figure!
+    #Windows requires powershell to figure out the .nimble path...
     when defined(Windows):
         let failedOmniCompilation = execShellCmd(omni_command)
     else:
