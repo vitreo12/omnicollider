@@ -69,7 +69,7 @@ proc printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPath : string = "", architecture : string = "native", supernova : bool = true, removeBuildFiles : bool = true) : int =
 
     #Check if file exists
     if not fileFullPath.fileExists():
@@ -93,14 +93,28 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
         printError($fileFullPath & " is not an omni file.")
         return 1
 
-    let expanded_sc_path = scPath.normalizedPath().expandTilde().absolutePath()
+    var expanded_sc_path : string
 
+    if scPath == "":
+        expanded_sc_path = default_sc_path
+    else:
+        expanded_sc_path = scPath
+
+    expanded_sc_path = expanded_sc_path.normalizedPath().expandTilde().absolutePath()
+    
     #Check scPath
     if not expanded_sc_path.dirExists():
         printError("scPath: " & $expanded_sc_path & " does not exist.")
         return 1
     
-    let expanded_out_dir = outDir.normalizedPath().expandTilde().absolutePath()
+    var expanded_out_dir : string
+
+    if outDir == "":
+        expanded_out_dir = default_extensions_path
+    else:
+        expanded_out_dir = outDir
+
+    expanded_out_dir = expanded_out_dir.normalizedPath().expandTilde().absolutePath()
 
     #Check outDir
     if not expanded_out_dir.dirExists():
@@ -415,7 +429,7 @@ proc omnicollider_single_file(fileFullPath : string, supernova : bool = true, ar
 
     return 0
 
-proc omnicollider(files : seq[string], supernova : bool = true, architecture : string = "native", outDir : string = default_extensions_path, scPath : string = default_sc_path, removeBuildFiles : bool = true) : int =
+proc omnicollider(files : seq[string], outDir : string = "", scPath : string = "", architecture : string = "native", supernova : bool = true, removeBuildFiles : bool = true) : int =
     #no files provided, print --version
     if files.len == 0:
         echo version_flag
@@ -427,7 +441,7 @@ proc omnicollider(files : seq[string], supernova : bool = true, architecture : s
 
         #If it's a file, compile it
         if omniFileFullPath.fileExists():
-            if omnicollider_single_file(omniFileFullPath, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+            if omnicollider_single_file(omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
                 return 1
 
         #If it's a dir, compile all .omni/.oi files in it
@@ -439,7 +453,7 @@ proc omnicollider(files : seq[string], supernova : bool = true, architecture : s
                         dirFileExt = dirFileFullPath.splitFile().ext
                     
                     if dirFileExt == ".omni" or dirFileExt == ".oi":
-                        if omnicollider_single_file(dirFileFullPath, supernova, architecture, outDir, scPath, removeBuildFiles) > 0:
+                        if omnicollider_single_file(dirFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
                             return 1
 
         else:
@@ -452,18 +466,20 @@ proc omnicollider(files : seq[string], supernova : bool = true, architecture : s
 clCfg.version = version_flag
 
 #Dispatch the omnicollider function as the CLI one
-dispatch(omnicollider, 
-    short={
+dispatch(
+    omnicollider, 
+    
+    short = {
         "version" : 'v',
         "scPath" : 'p',
         "supernova" : 's'
     }, 
     
-    help={ 
-        "supernova" : "Build with supernova support.",
+    help = { 
+        "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\": \"" & $default_extensions_path & "\".",
+        "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in OmniCollider's dependencies: \"" & $default_sc_path & "\".", 
         "architecture" : "Build architecture.",
-        "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\".",
-        "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in omnicollider's dependencies.", 
+        "supernova" : "Build with supernova support.",
         "removeBuildFiles" : "Remove all source files used for compilation from outDir."        
     }
 )
