@@ -90,7 +90,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
 
     #Check file extension
     if not(omniFileExt == ".omni") and not(omniFileExt == ".oi"):
-        printError($fileFullPath & " is not an omni file.")
+        printError($fileFullPath & " is not an Omni file.")
         return 1
 
     var expanded_sc_path : string
