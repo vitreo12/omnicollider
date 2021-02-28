@@ -464,10 +464,22 @@ proc omnicollider(files : seq[string], outDir : string = "", scPath : string = "
 
 #Workaround to pass custom version
 clCfg.version = version_flag
+ 
+#Remove --help-syntax
+clCfg.helpSyntax = ""
+
+#Arguments string
+let arguments = "Arguments:\n  Omni file(s) or folder."
 
 #Dispatch the omnicollider function as the CLI one
 dispatch(
     omnicollider, 
+    
+    #Remove "Usage: ..."
+    noHdr = true,
+    
+    #Custom options printing
+    usage = version_flag & "\n\n" & arguments & "\n\nOptions:\n$options",
     
     short = {
         "version" : 'v',
