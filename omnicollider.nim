@@ -488,7 +488,7 @@ dispatch(
     }, 
     
     help = { 
-        "outDir" : "Output directory. Defaults to SuperCollider's \"Platform.userExtensionDir\": \"" & $default_extensions_path & "\".",
+        "outDir" : "Output directory. Defaults to SuperCollider's 'Platform.userExtensionDir': \"" & $default_extensions_path & "\".",
         "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in OmniCollider's dependencies: \"" & $default_sc_path & "\".", 
         "architecture" : "Build architecture.",
         "supernova" : "Build with supernova support.",
