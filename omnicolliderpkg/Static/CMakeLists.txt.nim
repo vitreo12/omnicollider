@@ -22,7 +22,7 @@
 
 var OMNI_PROTO_CMAKE = """
 set(FILENAME "Omni_PROTO.cpp")
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.0)
 get_filename_component(PROJECT ${FILENAME} NAME_WE)
 message(STATUS "Project name is ${PROJECT}")
 
