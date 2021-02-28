@@ -24,7 +24,6 @@ var OMNI_PROTO_CMAKE = """
 set(FILENAME "Omni_PROTO.cpp")
 cmake_minimum_required (VERSION 3.0)
 get_filename_component(PROJECT ${FILENAME} NAME_WE)
-message(STATUS "Project name is ${PROJECT}")
 
 #Needed for generic OSX builds. MacOS 10.10 is the minimum.
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "Minimum OS X deployment version")
