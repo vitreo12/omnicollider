@@ -49,7 +49,7 @@ before install:
 
     #Install omnicollider_lang
     withDir(package_dir & "/omnicollider_lang"):
-        exec "nimble install"
+        exec "nimble install -Y"
 
 #before / after are BOTH needed for any of the two to work
 after install:
