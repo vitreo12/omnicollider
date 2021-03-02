@@ -405,7 +405,6 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     #If removeBuildFiles, remove all sources and static libraries compiled
     if removeBuildFiles:
         let fullPathToOmniHeaderFile = fullPathToNewFolder & "/omni.h"
-
         removeFile(fullPathToOmniHeaderFile)
         removeFile(fullPathToCppFile)
         removeFile(fullPathToOmniFile)
