@@ -63,19 +63,9 @@ void RTFree_func(void* in_ptr)
     ft->fRTFree(SCWorld, in_ptr);
 }
 
-void RTPrint_str_func(const char* format_string)
+void RTPrint_func(const char* format_string, ...)
 {
-    ft->fPrint("%s\n", format_string);
-}
-
-void RTPrint_float_func(float value)
-{
-    ft->fPrint("%f\n", value);
-}
-
-void RTPrint_int_func(int value)
-{
-    ft->fPrint("%d\n", value);
+    ft->fPrint(format_string);
 }
 
 /*********************************/
@@ -187,9 +177,7 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
                     (omni_alloc_func_t*)RTAlloc_func, 
                     (omni_realloc_func_t*)RTRealloc_func, 
                     (omni_free_func_t*)RTFree_func,
-                    (omni_print_str_func_t*)RTPrint_str_func,
-                    (omni_print_float_func_t*)RTPrint_float_func,
-                    (omni_print_int_func_t*)RTPrint_int_func
+                    (omni_print_func_t*)RTPrint_func
                 );
             }
 
