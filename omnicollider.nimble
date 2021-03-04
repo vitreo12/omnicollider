@@ -26,7 +26,7 @@ description   = "SuperCollider wrapper for omni."
 license       = "MIT"
 
 requires "nim >= 1.4.0"
-requires "cligen >= 1.0.0"
+requires "cligen >= 1.5.0"
 requires "omni == 0.3.0"
 
 #Ignore omnicollider_lang
