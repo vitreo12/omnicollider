@@ -405,7 +405,6 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     #If removeBuildFiles, remove all sources and static libraries compiled
     if removeBuildFiles:
         let fullPathToOmniHeaderFile = fullPathToNewFolder & "/omni.h"
-
         removeFile(fullPathToOmniHeaderFile)
         removeFile(fullPathToCppFile)
         removeFile(fullPathToOmniFile)
@@ -471,6 +470,9 @@ clCfg.helpSyntax = ""
 #Arguments string
 let arguments = "Arguments:\n  Omni file(s) or folder."
 
+#Ignore clValType
+clCfg.hTabCols = @[ clOptKeys, #[clValType,]# clDflVal, clDescrip ]
+
 #Dispatch the omnicollider function as the CLI one
 dispatch(
     omnicollider, 
@@ -488,6 +490,8 @@ dispatch(
     }, 
     
     help = { 
+        "help" : "CLIGEN-NOHELP",
+        "version" : "CLIGEN-NOHELP",
         "outDir" : "Output directory. Defaults to SuperCollider's 'Platform.userExtensionDir': \"" & $default_extensions_path & "\".",
         "scPath" : "Path to the SuperCollider source code folder. Defaults to the one in OmniCollider's dependencies: \"" & $default_sc_path & "\".", 
         "architecture" : "Build architecture.",
