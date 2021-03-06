@@ -57,15 +57,15 @@ when defined(Windows):
         lib_prepend             = ""
         static_lib_extension    = ".lib"
 
-proc printError(msg : string) : void =
+template printError(msg : string) : untyped =
     setForegroundColor(fgRed)
-    writeStyled("ERROR [omnicollider]: ", {styleBright}) 
+    writeStyled("ERROR : ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc printDone(msg : string) : void =
+template printDone(msg : string) : void =
     setForegroundColor(fgGreen)
-    writeStyled("DONE [omnicollider]: ", {styleBright}) 
+    writeStyled("\nSUCCESS : ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
@@ -82,8 +82,6 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         omniFileName = omniFile.name
         omniFileExt  = omniFile.ext
     
-    let originalOmniFileName = omniFileName
-
     #Check file first charcter, must be a capital letter
     if not omniFileName[0].isUpperAscii:
         omniFileName[0] = omniFileName[0].toUpperAscii()
@@ -153,7 +151,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     # ================= #
 
     #Compile omni file 
-    let omni_command = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" --silent --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path...
     when defined(Windows):
@@ -163,14 +161,13 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
 
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
-        printError("Unsuccessful compilation of " & $originalOmniFileName & $omniFileExt & ".")
         removeDir(fullPathToNewFolder)
         return 1
     
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when defined(Windows):
@@ -180,7 +177,6 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
-            printError("Unsuccessful supernova compilation of " & $originalOmniFileName & $omniFileExt & ".")
             removeDir(fullPathToNewFolder)
             return 1
     
@@ -424,7 +420,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         copyDir(fullPathToNewFolder, fullPathToNewFolderInOutDir)
         removeDir(fullPathToNewFolder)
 
-    printDone("The " & $omniFileName & " UGen has been correctly built and installed in \"" & $expanded_out_dir & "\".")
+    printDone("The '" & $omniFileName & "' UGen has been correctly built and installed in \"" & $expanded_out_dir & "\".")
 
     return 0
 
