@@ -59,13 +59,13 @@ when defined(Windows):
 
 template printError(msg : string) : untyped =
     setForegroundColor(fgRed)
-    writeStyled("ERROR : ", {styleBright}) 
+    writeStyled("ERROR: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
 template printDone(msg : string) : void =
     setForegroundColor(fgGreen)
-    writeStyled("\nSUCCESS : ", {styleBright}) 
+    writeStyled("\nSUCCESS: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
