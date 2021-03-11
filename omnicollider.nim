@@ -59,13 +59,13 @@ when defined(Windows):
 
 template printError(msg : string) : untyped =
     setForegroundColor(fgRed)
-    writeStyled("ERROR : ", {styleBright}) 
+    writeStyled("ERROR: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
 template printDone(msg : string) : void =
     setForegroundColor(fgGreen)
-    writeStyled("\nSUCCESS : ", {styleBright}) 
+    writeStyled("\nSUCCESS: ", {styleBright}) 
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
@@ -151,7 +151,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     # ================= #
 
     #Compile omni file 
-    let omni_command = "omni \"" & $fileFullPath & "\" --silent --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path...
     when defined(Windows):
@@ -167,7 +167,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when defined(Windows):
