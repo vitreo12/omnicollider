@@ -350,7 +350,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     when defined(Windows):
         #Cmake wants a path in unix style, not windows! Replace "/" with "\"
         let fullPathToNewFolder_Unix = fullPathToNewFolder.replace("\\", "/")
-        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DCMAKE_MAKE_PROGRAM:PATH=\"make\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
     else:
         sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
         
@@ -370,18 +370,12 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         return 1
 
     #make command
+    let compilation_cmd = "cmake --build . --config Release"
     when defined(Windows):
-        let 
-            sc_compilation_cmd  = "mingw32-make"
-            #sc_compilation_cmd = "cmake --build . --config Release"
-            failedSCCompilation = execShellCmd(sc_compilation_cmd) #execCmd doesn't work on Windows (since it wouldn't go through the powershell)
+        let failedSCCompilation = execShellCmd(compilation_cmd) #execCmd doesn't work on Windows (since it wouldn't go through the powershell)
     else:
-        let 
-            sc_compilation_cmd = "make"
-            #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
-            failedSCCompilation = execCmd(sc_compilation_cmd)
+        let failedSCCompilation = execCmd(compilation_cmd)
         
-    
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCompilation > 0:
         printError("Unsuccessful compilation of the UGen file \"" & $omniFileName & ".cpp\".")
