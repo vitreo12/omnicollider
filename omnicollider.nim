@@ -118,6 +118,11 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     if not expanded_out_dir.dirExists():
         printError("outDir: " & $expanded_out_dir & " does not exist.")
         return 1
+    
+    #x86_64 and amd64 are aliases for x86-64
+    var real_architecture = architecture
+    if real_architecture == "x86_64" or real_architecture == "amd64":
+        real_architecture = "x86-64"
 
     #Full paths to the new file in omniFileName directory
     let 
@@ -151,7 +156,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     # ================= #
 
     #Compile omni file 
-    let omni_command = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $real_architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path...
     when defined(Windows):
@@ -167,7 +172,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $real_architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when defined(Windows):
@@ -350,9 +355,9 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     when defined(Windows):
         #Cmake wants a path in unix style, not windows! Replace "/" with "\"
         let fullPathToNewFolder_Unix = fullPathToNewFolder.replace("\\", "/")
-        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DCMAKE_MAKE_PROGRAM:PATH=\"make\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DCMAKE_MAKE_PROGRAM:PATH=\"make\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $real_architecture & " .."
     else:
-        sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+        sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $real_architecture & " .."
         
     #cd into the build directory
     setCurrentDir(fullPathToNewFolder & "/build")
