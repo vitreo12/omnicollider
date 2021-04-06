@@ -40,7 +40,7 @@ After `chocolatey` has been installed, open `PowerShell` as administrator and ru
 
 To install `omnicollider`, simply use the `nimble` package manager (it comes bundled with the `nim` installation).The command will also take care of installing `omni`:
 
-    nimble install omnicollider
+    nimble install omnicollider -y
 
 ## **Usage**
 
