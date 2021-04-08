@@ -69,7 +69,7 @@ template printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPath : string = "", architecture : string = "native", supernova : bool = true, removeBuildFiles : bool = true) : int =
+proc omnicollider_single_file(is_multi : bool = false, fileFullPath : string, outDir : string = "", scPath : string = "", architecture : string = "native", supernova : bool = true, removeBuildFiles : bool = true) : int =
 
     #Check if file exists
     if not fileFullPath.fileExists():
@@ -167,6 +167,8 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
         removeDir(fullPathToNewFolder)
+        if is_multi:
+            printError("Failed compilation of '" & omniFileName & omniFileExt & "'.")
         return 1
     
     #Also for supernova
@@ -183,6 +185,8 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
             removeDir(fullPathToNewFolder)
+            if is_multi:
+                printError("Failed compilation of '" & omniFileName & omniFileExt & "'.")
             return 1
     
     # ================ #
@@ -436,10 +440,13 @@ proc omnicollider(files : seq[string], outDir : string = "", scPath : string = "
         #Get full extended path
         let omniFileFullPath = omniFile.normalizedPath().expandTilde().absolutePath()
 
-        #If it's a file, compile it
+        #if just one file in CLI, also pass the outName flag
         if omniFileFullPath.fileExists():
-            if omnicollider_single_file(omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
-                return 1
+            if files.len == 1:
+                return omnicollider_single_file(false, omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles):
+            else:
+                if omnicollider_single_file(true, omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
+                    return 1
 
         #If it's a dir, compile all .omni/.oi files in it
         elif omniFileFullPath.dirExists():
@@ -450,7 +457,7 @@ proc omnicollider(files : seq[string], outDir : string = "", scPath : string = "
                         dirFileExt = dirFileFullPath.splitFile().ext
                     
                     if dirFileExt == ".omni" or dirFileExt == ".oi":
-                        if omnicollider_single_file(dirFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
+                        if omnicollider_single_file(true, dirFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
                             return 1
 
         else:
