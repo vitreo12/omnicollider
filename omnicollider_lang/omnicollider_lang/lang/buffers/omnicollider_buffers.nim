@@ -22,14 +22,13 @@
 
 import macros, strutils
 
-macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_number : typed, omni_buffers_names : typed) : untyped =
+macro omnicollider_buffers*(ins_number : typed, buffers_number : typed, omni_buffers_names : typed) : untyped =
     let buffers_names_val = omni_buffers_names.getImpl()
     if buffers_names_val.kind != nnkStrLit:
         error "buffers: omnicollider can't retrieve buffers' names."    
     
     let 
         ins_number_lit     = ins_number.intVal()
-        params_number_lit  = params_number.intVal()
         buffers_number_lit = buffers_number.intVal()
         buffers_names_seq  = buffers_names_val.strVal().split(',')
 
@@ -61,7 +60,7 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
                 buffer_name_ident = newIdentNode(buffer_name)
                 buffer_name_omni_buffer_ident = newIdentNode(buffer_name & "_omni_buffer")
                 omni_ins_ptr = newIdentNode("omni_ins_ptr")
-                buffer_index = int(ins_number_lit + params_number_lit + index) #shift by ins + params
+                buffer_index = int(ins_number_lit + index) #shift by ins
 
             perform_block.add(
                 nnkLetSection.newTree(
@@ -90,4 +89,4 @@ macro omnicollider_buffers*(ins_number : typed, params_number : typed, buffers_n
     #error repr result
 
 template omni_buffers_pre_perform_hook*() : untyped =
-    omnicollider_buffers(omni_inputs, omni_params, omni_buffers, omni_buffers_names_const)
+    omnicollider_buffers(omni_inputs, omni_buffers, omni_buffers_names_const)

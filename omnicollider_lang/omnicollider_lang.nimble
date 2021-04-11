@@ -20,12 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version       = "0.3.0"
+version       = "0.4.0"
 author        = "Francesco Cameli"
 description   = "omnicollider_lang"
 license       = "MIT"
 
 requires "nim >= 1.0.0"
-requires "omni >= 0.3.0"
+requires "omni == 0.4.0"
 
 installDirs = @["omnicollider_lang"]

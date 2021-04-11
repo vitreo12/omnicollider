@@ -69,7 +69,7 @@ template printDone(msg : string) : void =
     setForegroundColor(fgWhite, true)
     writeStyled(msg & "\n")
 
-proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPath : string = "", architecture : string = "native", supernova : bool = true, removeBuildFiles : bool = true) : int =
+proc omnicollider_single_file(is_multi : bool = false, fileFullPath : string, outDir : string = "", scPath : string = "", architecture : string = "native", supernova : bool = true, removeBuildFiles : bool = true) : int =
 
     #Check if file exists
     if not fileFullPath.fileExists():
@@ -118,6 +118,11 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     if not expanded_out_dir.dirExists():
         printError("outDir: " & $expanded_out_dir & " does not exist.")
         return 1
+    
+    #x86_64 and amd64 are aliases for x86-64
+    var real_architecture = architecture
+    if real_architecture == "x86_64" or real_architecture == "amd64":
+        real_architecture = "x86-64"
 
     #Full paths to the new file in omniFileName directory
     let 
@@ -151,7 +156,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     # ================= #
 
     #Compile omni file 
-    let omni_command = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
+    let omni_command = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $real_architecture & " --lib:static --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:omni_buffers_disable_multithreading --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
 
     #Windows requires powershell to figure out the .nimble path...
     when defined(Windows):
@@ -162,12 +167,14 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedOmniCompilation > 0:
         removeDir(fullPathToNewFolder)
+        if is_multi:
+            printError("Failed compilation of '" & omniFileName & omniFileExt & "'.")
         return 1
     
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $real_architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when defined(Windows):
@@ -178,6 +185,8 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
         if failedOmniCompilation_supernova > 0:
             removeDir(fullPathToNewFolder)
+            if is_multi:
+                printError("Failed compilation of '" & omniFileName & omniFileExt & "'.")
             return 1
     
     # ================ #
@@ -210,22 +219,24 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         buffers_names = buffers_names_string.split(',')
         num_outputs = parseInt(io_file_seq[9])
 
+    var num_inputs_buffers_params = num_inputs
+
     #Check for 0 inputs, cleanup the entries ("NIL" and 0)
     if num_inputs == 0:
         inputs_names.del(0)
         inputs_defaults.del(0)
 
-    #Do this check cause no params == "NIL", don't wanna add that
-    if num_params > 0:
-        num_inputs += num_params
-        inputs_names.add(params_names)
-        inputs_defaults.add(params_defaults)
-    
     #Do this check cause no buffers == "NIL", don't wanna add that
     if num_buffers > 0:
-        num_inputs += num_buffers
+        num_inputs_buffers_params += num_buffers
         inputs_names.add(buffers_names)
     
+    #Do this check cause no params == "NIL", don't wanna add that
+    if num_params > 0:
+        num_inputs_buffers_params += num_params
+        inputs_names.add(params_names)
+        inputs_defaults.add(params_defaults)
+
     # ======== #
     # SC I / O #
     # ======== #
@@ -242,7 +253,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         PARAMS_INDICES_CPP = "const std::array<int,NUM_PARAMS> params_indices = { "
         PARAMS_NAMES_CPP   = "const std::array<std::string,NUM_PARAMS> params_names = { "
 
-    if num_inputs == 0:
+    if num_inputs_buffers_params == 0:
         multiNew_string.add(");")
     else:
         arg_string.add("arg ")
@@ -253,21 +264,22 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
                 is_param  = false
                 is_buffer = false
 
-            #ins and params, num_inputs is (num_inputs + num_params + num_buffers)
-            if index < (num_inputs - num_buffers):
+            #buffer
+            if index >= num_inputs and index < num_inputs + num_buffers:
+                is_buffer = true
+                default_val = "0"
+            
+            #param
+            elif index >= num_inputs + num_buffers:
+                PARAMS_INDICES_CPP.add($index & ",")
+                PARAMS_NAMES_CPP.add("\"" & $input_name & "\",")
+                is_param    = true
+                default_val = inputs_defaults[index - num_buffers]
+
+            #ins
+            else:
                 default_val = inputs_defaults[index]
 
-                if index >= (num_inputs - num_params - num_buffers):
-                    PARAMS_INDICES_CPP.add($index & ",")
-                    PARAMS_NAMES_CPP.add("\"" & $input_name & "\",")
-                    is_param = true
-
-            #buffers default to 0
-            else:
-                is_buffer   = true
-                default_val = "0"
-
-            
             if is_param:
                 arg_rates.add("if(" & $input_name & ".rate == 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at control rate. Wrapping it in a A2K.kr UGen.\").warn; " & $input_name & " = A2K.kr(" & $input_name & "); });\n\t\t")
             elif is_buffer:
@@ -275,7 +287,7 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
             else:
                 arg_rates.add("if(" & $input_name & ".rate != 'audio', { ((this.class).asString.replace(\"Meta_\", \"\") ++ \": expected argument \'" & $input_name & "\' to be at audio rate. Wrapping it in a K2A.ar UGen.\").warn; " & $input_name & " = K2A.ar(" & $input_name & "); });\n\t\t")
 
-            if index == num_inputs - 1:
+            if index == num_inputs_buffers_params - 1:
                 arg_string.add($input_name & "=(" & $default_val & ");")
                 multiNew_string.add($input_name & ");")
                 break
@@ -347,9 +359,9 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
     when defined(Windows):
         #Cmake wants a path in unix style, not windows! Replace "/" with "\"
         let fullPathToNewFolder_Unix = fullPathToNewFolder.replace("\\", "/")
-        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+        sc_cmake_cmd = "cmake -G \"MinGW Makefiles\" -DCMAKE_MAKE_PROGRAM:PATH=\"make\" -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder_Unix & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $real_architecture & " .."
     else:
-        sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $architecture & " .."
+        sc_cmake_cmd = "cmake -DOMNI_BUILD_DIR=\"" & $fullPathToNewFolder & "\" -DSC_PATH=\"" & $expanded_sc_path & "\" -DSUPERNOVA=" & $supernova_on_off & " -DCMAKE_BUILD_TYPE=Release -DBUILD_MARCH=" & $real_architecture & " .."
         
     #cd into the build directory
     setCurrentDir(fullPathToNewFolder & "/build")
@@ -367,18 +379,12 @@ proc omnicollider_single_file(fileFullPath : string, outDir : string = "", scPat
         return 1
 
     #make command
+    let compilation_cmd = "cmake --build . --config Release"
     when defined(Windows):
-        let 
-            sc_compilation_cmd  = "mingw32-make"
-            #sc_compilation_cmd = "cmake --build . --config Release"
-            failedSCCompilation = execShellCmd(sc_compilation_cmd) #execCmd doesn't work on Windows (since it wouldn't go through the powershell)
+        let failedSCCompilation = execShellCmd(compilation_cmd) #execCmd doesn't work on Windows (since it wouldn't go through the powershell)
     else:
-        let 
-            sc_compilation_cmd = "make"
-            #sc_compilation_cmd = "cmake --build . --config Release"  #https://scsynth.org/t/update-to-build-instructions-for-sc3-plugins/2671
-            failedSCCompilation = execCmd(sc_compilation_cmd)
+        let failedSCCompilation = execCmd(compilation_cmd)
         
-    
     #error code from execCmd is usually some 8bit number saying what error arises. I don't care which one for now.
     if failedSCCompilation > 0:
         printError("Unsuccessful compilation of the UGen file \"" & $omniFileName & ".cpp\".")
@@ -434,10 +440,13 @@ proc omnicollider(files : seq[string], outDir : string = "", scPath : string = "
         #Get full extended path
         let omniFileFullPath = omniFile.normalizedPath().expandTilde().absolutePath()
 
-        #If it's a file, compile it
+        #if just one file in CLI, also pass the outName flag
         if omniFileFullPath.fileExists():
-            if omnicollider_single_file(omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
-                return 1
+            if files.len == 1:
+                return omnicollider_single_file(false, omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles):
+            else:
+                if omnicollider_single_file(true, omniFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
+                    return 1
 
         #If it's a dir, compile all .omni/.oi files in it
         elif omniFileFullPath.dirExists():
@@ -448,7 +457,7 @@ proc omnicollider(files : seq[string], outDir : string = "", scPath : string = "
                         dirFileExt = dirFileFullPath.splitFile().ext
                     
                     if dirFileExt == ".omni" or dirFileExt == ".oi":
-                        if omnicollider_single_file(dirFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
+                        if omnicollider_single_file(true, dirFileFullPath, outDir, scPath, architecture, supernova, removeBuildFiles) > 0:
                             return 1
 
         else:

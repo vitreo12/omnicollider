@@ -203,16 +203,14 @@ void Omni_PROTO_Ctor(Omni_PROTO* unit)
         (void*)unit->mWorld
     );
 
-    if(!omni_initialized)
-        unit->omni_ugen = nullptr;
-        
-    if(unit->omni_ugen)
+    if(omni_initialized)
     {
         SETCALC(Omni_PROTO_next);
         Omni_PROTO_next(unit, 1);
     }
     else
     {
+        unit->omni_ugen = nullptr;
         SETCALC(Omni_PROTO_silence_next);
         Omni_PROTO_silence_next(unit, 1);
     }

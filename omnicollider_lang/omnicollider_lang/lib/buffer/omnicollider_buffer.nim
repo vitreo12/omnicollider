@@ -41,8 +41,6 @@ template invalid_buffer() : untyped {.dirty.} =
 
 #Create a new Buffer interface for the omnicollider wrapper
 omniBufferInterface:
-    debug: false
-
     struct:
         sc_world      : pointer
         snd_buf       : pointer

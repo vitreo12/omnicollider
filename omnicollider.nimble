@@ -20,14 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version       = "0.3.0"
+version       = "0.4.0"
 author        = "Francesco Cameli"
 description   = "SuperCollider wrapper for omni."
 license       = "MIT"
 
 requires "nim >= 1.4.0"
 requires "cligen >= 1.5.0"
-requires "omni == 0.3.0"
+requires "omni == 0.4.0"
 
 #Ignore omnicollider_lang
 skipDirs = @["omnicollider_lang"]

@@ -25,14 +25,15 @@ import macros, strutils
 
 #overwrite the omni_unpack_params_perform template! 
 #instead of calling SetParam at each cycle from SC's CPP interface, just replace the template and use the inputs directly instead
-macro omnicollider_params*(ins_number : typed, params_number : typed, params_names : typed) : untyped =
+macro omnicollider_params*(ins_number : typed, buffers_number : typed, params_number : typed, params_names : typed) : untyped =
     let params_names_val = params_names.getImpl()
     if params_names_val.kind != nnkStrLit:
         error "params: omnicollider can't retrieve params' names."    
     
     let 
-        ins_number_lit    = ins_number.intVal()
-        params_number_lit = params_number.intVal()
+        ins_number_lit     = ins_number.intVal()
+        params_number_lit  = params_number.intVal()
+        buffers_number_lit = buffers_number.intVal()
         params_names_seq   = params_names_val.strVal().split(',')
 
     result = nnkStmtList.newTree()
@@ -65,7 +66,7 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
             let 
                 param_name_ident = newIdentNode(param_name)
                 omni_ins_ptr     = newIdentNode("omni_ins_ptr")
-                param_index      = int(ins_number_lit + index)
+                param_index      = int(ins_number_lit + buffers_number_lit + index) #shift by ins + buffers
             
             let let_stmt_ident_defs = nnkIdentDefs.newTree(
                 param_name_ident,
@@ -88,4 +89,4 @@ macro omnicollider_params*(ins_number : typed, params_number : typed, params_nam
 
 #register the omni_params_post_hook call
 template omni_params_pre_perform_hook*() : untyped =
-    omnicollider_params(omni_inputs, omni_params, omni_params_names_const)
+    omnicollider_params(omni_inputs, omni_buffers, omni_params, omni_params_names_const)
