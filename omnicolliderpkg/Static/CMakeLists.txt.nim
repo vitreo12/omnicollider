@@ -123,14 +123,20 @@ if(MINGW)
 endif()
 
 #Set optimizer flags
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -DNDEBUG -march=${BUILD_MARCH}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG -march=${BUILD_MARCH}")
-set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -DNDEBUG -march=${BUILD_MARCH}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -march=${BUILD_MARCH}")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
-#Build architecture... Should I just get rid of this since it's set in C and CXX flags?
+#Build architecture... if not none, pass the flags through
 message(STATUS "BUILD ARCHITECTURE : ${BUILD_MARCH}")
-add_definitions(-march=${BUILD_MARCH})
+if (NOT BUILD_MARCH STREQUAL "none")
+    add_definitions(-march=${BUILD_MARCH})
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -march=${BUILD_MARCH}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${BUILD_MARCH}")
+    set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} -march=${BUILD_MARCH}")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=${BUILD_MARCH}")
+endif()
 
 #If native, also add mtune=native
 if (BUILD_MARCH STREQUAL "native")
