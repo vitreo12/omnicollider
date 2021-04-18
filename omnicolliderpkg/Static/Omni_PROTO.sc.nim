@@ -24,7 +24,7 @@ var OMNI_PROTO_SC = """
 Omni_PROTO : UGen {
     *kr {
         //args
-        ((this.class).asString.replace("Meta_", "") ++ ": an Omni generated UGen does not provide a kr method. Returning 0.").error;
+        ((this.class).asString.replace("Meta_", "") ++ ": Omni generated UGens do not provide a kr method. Returning 0.").error;
         ^(0);
     }
     *ar { 
