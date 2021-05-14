@@ -44,7 +44,7 @@ To install `omnicollider`, simply use the `nimble` package manager (it comes bun
 
 ## **Usage**
 
-    omnicollider ~/.nimble/pkgs/omni-0.4.0/examples/OmniSaw.omni
+    omnicollider ~/.nimble/pkgs/omni-0.4.1/examples/OmniSaw.omni
 
 ## **Website / Docs**
 

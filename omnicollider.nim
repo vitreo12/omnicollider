@@ -174,7 +174,7 @@ proc omnicollider_single_file(is_multi : bool = false, fileFullPath : string, ou
     #Also for supernova
     if supernova:
         #supernova gets passed both supercollider (which turns on the rt_alloc) and supernova (for buffer handling) flags
-        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $real_architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --outDir:\"" & $fullPathToNewFolder & "\""
+        var omni_command_supernova = "omni \"" & $fileFullPath & "\" --silent:true --architecture:" & $real_architecture & " --lib:static --outName:" & $omniFileName & "_supernova --wrapper:omnicollider_lang --performBits:32 --define:omni_locks_disable --define:supernova --exportIO:true --outDir:\"" & $fullPathToNewFolder & "\""
         
         #Windows requires powershell to figure out the .nimble path... go figure!
         when defined(Windows):
@@ -194,12 +194,12 @@ proc omnicollider_single_file(is_multi : bool = false, fileFullPath : string, ou
     # ================ #
     
     let 
-        fullPathToIOFile = fullPathToNewFolder & "/omni_io.txt"
+        fullPathToIOFile = fullPathToNewFolder & "/" & omniFileName & "_io.txt"
         io_file = readFile(fullPathToIOFile)
         io_file_seq = io_file.split('\n')
 
     if io_file_seq.len != 11:
-        printError("Invalid omni_io.txt file.")
+        printError("Invalid io file: " & fullPathToIOFile & ".")
         removeDir(fullPathToNewFolder)
         return 1
     
