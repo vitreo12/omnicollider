@@ -98,6 +98,16 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANG)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2")
     endif()
 
+    CHECK_C_COMPILER_FLAG(-msse3 HAS_SSE3)
+    CHECK_CXX_COMPILER_FLAG(-msse3 HAS_CXX_SSE3)
+
+    if (HAS_SSE3)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3")
+    endif()
+    if (HAS_CXX_SSE3)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse3")
+    endif()
+
     CHECK_C_COMPILER_FLAG(-mfpmath=sse HAS_FPMATH_SSE)
     CHECK_CXX_COMPILER_FLAG(-mfpmath=sse HAS_CXX_FPMATH_SSE)
 
